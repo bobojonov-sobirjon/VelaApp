@@ -5,6 +5,7 @@ from elevenlabs import ElevenLabs, VoiceSettings
 def synthesize_audio(input: str):
     # Initialize the Eleven Labs client
     load_dotenv()
+    print(os.getenv("ELEVENLABS_API_KEY"))
     client = ElevenLabs(
       api_key = os.getenv("ELEVENLABS_API_KEY"),
     )

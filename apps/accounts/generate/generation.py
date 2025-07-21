@@ -71,6 +71,7 @@ def generate_script(name, goals, dreamlife, dream_activities, word_count):
     word_count = "1,700"
 
     load_dotenv()
+    print(os.getenv("GROQ_API_Key"))
     llm = ChatGroq(model = "gemma2-9b-it", groq_api_key = os.getenv("GROQ_API_Key"))
 
     chain = prompt_template|llm
