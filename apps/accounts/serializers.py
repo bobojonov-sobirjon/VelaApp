@@ -437,4 +437,8 @@ class MeditationLibraryListSerializer(serializers.ModelSerializer):
         model = MeditationLibrary
         fields = ['id', 'name', 'image', 'description', 'file', 'created_at']
     
-    
+
+class RitualTypeListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RitualType
+        fields = ['id', 'name', 'description']

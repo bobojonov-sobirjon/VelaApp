@@ -19,6 +19,7 @@ from apps.accounts.views import (
 	AssignFreeTrialView,
 	CheckPlanStatusView,
 	CountMeditationView,
+	RitualTypeView,
 )
 
 urlpatterns = [
@@ -61,4 +62,7 @@ urlpatterns = [
  
 	# Count Meditations API
 	path('count-meditations/', CountMeditationView.as_view(), name='count-meditations'),
+ 
+	# Ritual Type API
+	path('ritual-types/', RitualTypeView.as_view(), name='ritual-types'),
 ]
