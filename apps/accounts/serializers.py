@@ -381,7 +381,7 @@ class CombinedProfileSerializer(serializers.Serializer):
         Create a placeholder file when external API is unavailable
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"meditation_{plan_type.name.lower().replace(' ', '_')}_{timestamp}.txt"
+        filename = f"meditation_{plan_type.name.lower().replace(' ', '_')}_{timestamp}.mp3"
         
         # Create a more detailed placeholder file
         content = f"""
