@@ -1,0 +1,677 @@
+Watching for file changes with StatReloader
+D:\Projects\Vela\config\settings.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x00000241BEA92F90>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x00000241BEA96490>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x00000241BEA95950>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+External API call failed: HTTPConnectionPool(host='31.97.98.47', port=8000): Max retries exceeded with url: /sleep (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x00000241BFF0A190>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)'))
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000016996F3B0E0>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000016996F46350>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000016996F45810>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+External API call failed: HTTPConnectionPool(host='31.97.98.47', port=8000): Max retries exceeded with url: /sleep (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001699845CFC0>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)'))
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DF1A692F90>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DF1A696350>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DF1A695810>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+External API call failed: HTTPConnectionPool(host='31.97.98.47', port=8000): Max retries exceeded with url: /sleep (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000001DF1BBB03E0>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)'))
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x00000168F8CEAF90>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x00000168F8CF2350>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x00000168F8CF1810>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)')': /sleep
+External API call failed: HTTPConnectionPool(host='31.97.98.47', port=8000): Max retries exceeded with url: /sleep (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x00000168FA1002B0>, 'Connection to 31.97.98.47 timed out. (connect timeout=60)'))
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002D9B1F02E40>, 'Connection to 31.97.98.47 timed out. (connect timeout=5)')': /
+Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002D9B1F06490>, 'Connection to 31.97.98.47 timed out. (connect timeout=5)')': /
+Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002D9B1F056D0>, 'Connection to 31.97.98.47 timed out. (connect timeout=5)')': /
+Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002D9B3310180>, 'Connection to 31.97.98.47 timed out. (connect timeout=30)')': /sleep
+Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002D9B3438050>, 'Connection to 31.97.98.47 timed out. (connect timeout=30)')': /sleep
+Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002D9B36508D0>, 'Connection to 31.97.98.47 timed out. (connect timeout=30)')': /sleep
+External API call failed: HTTPConnectionPool(host='31.97.98.47', port=8000): Max retries exceeded with url: /sleep (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x000002D9B3650160>, 'Connection to 31.97.98.47 timed out. (connect timeout=30)'))
+Watching for file changes with StatReloader
+Not Found: /
+Not Found: /favicon.ico
+Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000027A58441550>, 'Connection to 31.97.98.47 timed out. (connect timeout=5)')': /
+Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000027A5836F4D0>, 'Connection to 31.97.98.47 timed out. (connect timeout=5)')': /
+Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000027A5836F610>, 'Connection to 31.97.98.47 timed out. (connect timeout=5)')': /
+Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000027A58382780>, 'Connection to 31.97.98.47 timed out. (connect timeout=30)')': /sleep
+Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000027A57E75FD0>, 'Connection to 31.97.98.47 timed out. (connect timeout=30)')': /sleep
+Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000027A594AF240>, 'Connection to 31.97.98.47 timed out. (connect timeout=30)')': /sleep
+External API call failed: HTTPConnectionPool(host='31.97.98.47', port=8000): Max retries exceeded with url: /sleep (Caused by ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x0000027A594AF570>, 'Connection to 31.97.98.47 timed out. (connect timeout=30)'))
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\generate\functions.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.elevenlabs.io/v1/text-to-speech/Z3R5wn05IrDiVCyEkUrK/stream "HTTP/1.1 200 OK"
+Not Found: /favicon.ico
+pydub not available: No module named 'pyaudioop'. Using fallback implementation.
+Using fallback audio mixing - returning original meditation audio
+Watching for file changes with StatReloader
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.elevenlabs.io/v1/text-to-speech/Z3R5wn05IrDiVCyEkUrK/stream "HTTP/1.1 200 OK"
+pydub not available: No module named 'pyaudioop'. Using fallback implementation.
+Using fallback audio mixing - returning original meditation audio
+Not Found: /favicon.ico
+D:\Projects\Vela\apps\accounts\generate\music.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\generate\music.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\generate\music.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\generate\music.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\generate\music.py changed, reloading.
+Watching for file changes with StatReloader
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.elevenlabs.io/v1/text-to-speech/Z3R5wn05IrDiVCyEkUrK/stream "HTTP/1.1 200 OK"
+pydub not available: No module named 'pyaudioop'. Using fallback implementation.
+Using fallback audio mixing - returning original meditation audio
+Not Found: /favicon.ico
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.elevenlabs.io/v1/text-to-speech/Z3R5wn05IrDiVCyEkUrK/stream "HTTP/1.1 200 OK"
+pydub not available: No module named 'pyaudioop'. Using fallback implementation.
+Using fallback audio mixing - returning original meditation audio
+Not Found: /favicon.ico
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.elevenlabs.io/v1/text-to-speech/Z3R5wn05IrDiVCyEkUrK/stream "HTTP/1.1 200 OK"
+pydub not available: No module named 'pyaudioop'. Using fallback implementation.
+Using fallback audio mixing - returning original meditation audio
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Not Found: /
+Not Found: /favicon.ico
+Unauthorized: /api/auth/profile/combined/
+Unauthorized: /api/auth/profile/combined/
+Not Found: /accounts/login/
+Unauthorized: /api/auth/profile/combined/
+Watching for file changes with StatReloader
+Unauthorized: /api/auth/profile/combined/
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.elevenlabs.io/v1/text-to-speech/Z3R5wn05IrDiVCyEkUrK/stream "HTTP/1.1 200 OK"
+Not Found: /favicon.ico
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.elevenlabs.io/v1/text-to-speech/Z3R5wn05IrDiVCyEkUrK/stream "HTTP/1.1 200 OK"
+pydub not available: No module named 'pyaudioop'. Using fallback implementation.
+Using fallback audio mixing - returning original meditation audio
+Internal Server Error: /api/auth/profile/combined/
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.elevenlabs.io/v1/text-to-speech/Z3R5wn05IrDiVCyEkUrK/stream "HTTP/1.1 200 OK"
+pydub not available: No module named 'pyaudioop'. Using fallback implementation.
+Using fallback audio mixing - returning original meditation audio
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /
+Internal Server Error: /swagger/
+Internal Server Error: /swagger/
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /favicon.ico
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+Internal Server Error: /api/auth/user-detail/
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Not Found: /favicon.ico
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\admin.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+Not Found: /api/auth/signup/
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+Internal Server Error: /api/auth/profile/combined/
+D:\Projects\Vela\apps\accounts\models.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+Watching for file changes with StatReloader
+Internal Server Error: /api/auth/profile/combined/
+Watching for file changes with StatReloader
+Internal Server Error: /api/auth/profile/combined/
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+HTTP Request: POST https://api.elevenlabs.io/v1/text-to-speech/Z3R5wn05IrDiVCyEkUrK/stream "HTTP/1.1 200 OK"
+pydub not available: No module named 'pyaudioop'. Using fallback implementation.
+Using fallback audio mixing - returning original meditation audio
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\views.py changed, reloading.
+Watching for file changes with StatReloader
+Internal Server Error: /api/auth/plans/
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\serializers.py changed, reloading.
+Watching for file changes with StatReloader
+D:\Projects\Vela\apps\accounts\urls.py changed, reloading.
+Watching for file changes with StatReloader
