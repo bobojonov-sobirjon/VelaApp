@@ -30,7 +30,8 @@ class CustomUserDetailInline(admin.TabularInline):
 class UserCheckInInline(admin.TabularInline):
     model = UserCheckIn
     extra = 0
-    fields = ('check_in_choice', 'description', 'check_in_date')
+    fields = ('check_in_choice', 'description')
+    readonly_fields = ('check_in_date',)
     verbose_name = _("User Check In")
     verbose_name_plural = _("User Check Ins")
 
