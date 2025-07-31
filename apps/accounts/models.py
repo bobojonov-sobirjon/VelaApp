@@ -324,3 +324,71 @@ class PlanDescriptin(models.Model):
     class Meta:
         verbose_name = _("Plan Description")
         verbose_name_plural = _("Plan Descriptions")
+
+
+class UserLifeVision(models.Model):
+    class VisionTypeChoices(models.TextChoices):
+        LIFE_VISION = 'life_vision', _('Life Vision')
+        GOAL = 'goal', _('Goal')
+        DREAM = 'dream', _('Dream')
+        NORTH_STAR = 'north_star', _('North Star')
+    
+    class GoalStatusChoices(models.TextChoices):
+        IN_PROGRESS = 'in_progress', _('In Progress')
+        COMPLETED = 'completed', _('Completed')
+        NOT_STARTED = 'not_started', _('Not Started')
+        PAUSED = 'paused', _('Paused')
+    
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='life_visions', verbose_name=_("User"))
+    title = models.CharField(max_length=200, verbose_name=_("Title"), null=True, blank=True)
+    description = models.TextField(verbose_name=_("Description"), null=True, blank=True)
+    vision_type = models.CharField(
+        max_length=20, 
+        choices=VisionTypeChoices.choices, 
+        default=VisionTypeChoices.LIFE_VISION,
+        verbose_name=_("Vision Type")
+    )
+    goal_status = models.CharField(
+        max_length=20, 
+        choices=GoalStatusChoices.choices, 
+        default=GoalStatusChoices.NOT_STARTED,
+        verbose_name=_("Goal Status")
+    )
+    is_active = models.BooleanField(default=True, verbose_name=_("Is Active"))
+    is_completed = models.BooleanField(default=False, verbose_name=_("Is Completed"))
+    priority = models.IntegerField(default=1, verbose_name=_("Priority"))
+    target_date = models.DateField(null=True, blank=True, verbose_name=_("Target Date"))
+    completed_date = models.DateField(null=True, blank=True, verbose_name=_("Completed Date"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    
+    objects = models.Manager()
+    
+    class Meta:
+        verbose_name = _("User Life Vision")
+        verbose_name_plural = _("7. User Life Visions")
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.title}"
+    
+    def mark_as_completed(self):
+        """Mark the goal as completed"""
+        from django.utils import timezone
+        self.is_completed = True
+        self.goal_status = self.GoalStatusChoices.COMPLETED
+        self.completed_date = timezone.now().date()
+        self.save()
+    
+    def get_progress_percentage(self):
+        """Calculate progress percentage based on goal status"""
+        if self.is_completed:
+            return 100
+        elif self.goal_status == self.GoalStatusChoices.IN_PROGRESS:
+            return 50
+        elif self.goal_status == self.GoalStatusChoices.PAUSED:
+            return 25
+        else:
+            return 0
+
+

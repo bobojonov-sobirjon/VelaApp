@@ -15,13 +15,20 @@ from datetime import datetime
 from apps.accounts.models import (
     CustomUserDetail, Rituals, RitualType, 
     MeditationGenerate, Plans, LikeMeditation, 
-    UserCheckIn, MeditationLibrary, UserPlan
+    UserCheckIn, MeditationLibrary, UserPlan, UserLifeVision
 )
 
 # Import local meditation generation functions
 from apps.accounts.generate.functions import (
     sleep_function, spark_function, calm_function, 
     dream_function, check_in_function
+)
+
+# Import custom exceptions
+from config.exceptions import (
+    PlanTypeNotFoundError, AuthenticationRequiredError, 
+    SubscriptionRequiredError, TrialExpiredError, 
+    MeditationGenerationError
 )
 
 # Set up logger
@@ -211,193 +218,228 @@ class CombinedProfileSerializer(serializers.Serializer):
     voice = serializers.ChoiceField(choices=Rituals.VoiceChoices.choices, required=False)
     duration = serializers.ChoiceField(choices=Rituals.DurationChoices.choices, required=False)
 
+    def validate(self, data):
+        """
+        Validate the input data before processing
+        """
+        # Check if plan_type is provided
+        if 'plan_type' not in data or data['plan_type'] is None:
+            raise serializers.ValidationError({
+                'plan_type': 'Plan type is required to generate meditation.'
+            }, code='missing_plan_type')
+        
+        # Validate plan_type exists
+        try:
+            plan_type = RitualType.objects.get(id=data['plan_type'])
+        except RitualType.DoesNotExist:
+            raise PlanTypeNotFoundError(f'Plan type with ID {data["plan_type"]} does not exist.')
+        
+        return data
+
     def create(self, validated_data):
+        """
+        Create meditation with proper error handling and status codes
+        """
         user = self.context['request'].user
         
-        # Check if user has a valid plan (free trial or paid)
-        user_plans = UserPlan.objects.filter(user=user, is_active=True)
-        
-        # Check for active free trial (within 5 days)
-        free_trial_plans = user_plans.filter(plan__is_free_trial=True)
-        has_valid_free_trial = False
-        
-        for user_plan in free_trial_plans:
-            days_since_creation = (timezone.now() - user_plan.created_at).days
-            if days_since_creation <= 5:
-                has_valid_free_trial = True
-                break
-        
-        # Check for paid plans (monthly/annual)
-        paid_plans = user_plans.filter(plan__is_free_trial=False)
-        has_valid_paid_plan = False
-        
-        for user_plan in paid_plans:
-            # For monthly plans - check if within 30 days
-            if user_plan.plan.is_monthly:
-                days_since_start = (timezone.now() - user_plan.start_date).days
-                if days_since_start <= 30:
-                    has_valid_paid_plan = True
-                    break
-            # For annual plans - check if within 365 days
-            elif user_plan.plan.is_annual:
-                days_since_start = (timezone.now() - user_plan.start_date).days
-                if days_since_start <= 365:
-                    has_valid_paid_plan = True
-                    break
-        
-        if not (has_valid_free_trial or has_valid_paid_plan):
-            # Check if user had free trial but it expired
-            expired_free_trials = free_trial_plans.filter(
-                created_at__lte=timezone.now() - timezone.timedelta(days=5)
-            )
-            
-            if expired_free_trials.exists():
-                raise serializers.ValidationError("Your free trial has expired. Please upgrade to a paid plan to continue using this feature.")
-            else:
-                raise serializers.ValidationError("You need to have a free trial or paid plan to use this feature")
-        
-        # Extract user detail fields
-        
-        # Extract user detail fields
-        user_detail_fields = ['gender', 'dream', 'goals', 'age_range', 'happiness']
-        user_detail_data = {k: v for k, v in validated_data.items() if k in user_detail_fields}
-        
-        # Extract ritual fields
-        ritual_fields = ['name', 'description', 'ritual_type', 'tone', 'voice', 'duration']
-        ritual_data = {k: v for k, v in validated_data.items() if k in ritual_fields}
-        
-        # Create or update user detail
-        user_detail, created = CustomUserDetail.objects.get_or_create(user=user)
-        for field, value in user_detail_data.items():
-            setattr(user_detail, field, value)
-        user_detail.save()
-        
-        # Create ritual if ritual data is provided
-        ritual = None
-        if any(ritual_data.values()):
-            ritual = Rituals.objects.create(**ritual_data)
+        # Validate user authentication
+        if not user.is_authenticated:
+            raise AuthenticationRequiredError('User must be authenticated to create meditation.')
         
         try:
+            # Check if user has a valid plan (free trial or paid)
+            user_plans = UserPlan.objects.filter(user=user, is_active=True)
+            
+            # Check for active free trial (within 5 days)
+            free_trial_plans = user_plans.filter(plan__is_free_trial=True)
+            has_valid_free_trial = False
+            
+            for user_plan in free_trial_plans:
+                days_since_creation = (timezone.now() - user_plan.created_at).days
+                if days_since_creation <= 5:
+                    has_valid_free_trial = True
+                    break
+            
+            # Check for paid plans (monthly/annual)
+            paid_plans = user_plans.filter(plan__is_free_trial=False)
+            has_valid_paid_plan = False
+            
+            for user_plan in paid_plans:
+                # For monthly plans - check if within 30 days
+                if user_plan.plan.is_monthly:
+                    days_since_start = (timezone.now() - user_plan.start_date).days
+                    if days_since_start <= 30:
+                        has_valid_paid_plan = True
+                        break
+                # For annual plans - check if within 365 days
+                elif user_plan.plan.is_annual:
+                    days_since_start = (timezone.now() - user_plan.start_date).days
+                    if days_since_start <= 365:
+                        has_valid_paid_plan = True
+                        break
+            
+            if not (has_valid_free_trial or has_valid_paid_plan):
+                # Check if user had free trial but it expired
+                expired_free_trials = free_trial_plans.filter(
+                    created_at__lte=timezone.now() - timezone.timedelta(days=5)
+                )
+                
+                if expired_free_trials.exists():
+                    raise TrialExpiredError('Your free trial has expired. Please upgrade to a paid plan to continue using this feature.')
+                else:
+                    raise SubscriptionRequiredError('You need to have a free trial or paid plan to use this feature.')
+            
+            # Extract user detail fields
+            user_detail_fields = ['gender', 'dream', 'goals', 'age_range', 'happiness']
+            user_detail_data = {k: v for k, v in validated_data.items() if k in user_detail_fields and v}
+            
+            # Extract ritual fields
+            ritual_fields = ['name', 'description', 'ritual_type', 'tone', 'voice', 'duration']
+            ritual_data = {k: v for k, v in validated_data.items() if k in ritual_fields and v}
+            
+            # Create or update user detail
+            user_detail, created = CustomUserDetail.objects.get_or_create(user=user)
+            for field, value in user_detail_data.items():
+                setattr(user_detail, field, value)
+            user_detail.save()
+            
+            # Create ritual if ritual data is provided
+            ritual = None
+            if ritual_data:
+                ritual = Rituals.objects.create(**ritual_data)
+            
+            # Get plan type
             plan_type = RitualType.objects.get(id=validated_data['plan_type'])
-        except RitualType.DoesNotExist:
-            raise serializers.ValidationError("Ritual type not found")
-        
-        # Generate meditation file
-        meditation_file = self.generate_meditation(plan_type, ritual, user_detail)
-        
-        with transaction.atomic():
-            meditation = MeditationGenerate.objects.create(
-                user=user,
-                details=ritual,
-                ritual_type=plan_type,
-                file=meditation_file
-            )
-        
-        return {
-            'user_detail': user_detail,
-            'ritual': ritual
-        }
+            
+            # Generate meditation file
+            meditation_file = self.generate_meditation(plan_type, ritual, user_detail)
+            
+            with transaction.atomic():
+                meditation = MeditationGenerate.objects.create(
+                    user=user,
+                    details=ritual,
+                    ritual_type=plan_type,
+                    file=meditation_file
+                )
+            
+            return {
+                'success': True,
+                'message': 'Meditation generated successfully',
+                'meditation_id': meditation.id,
+                'user_detail': user_detail,
+                'ritual': ritual
+            }
+            
+        except serializers.ValidationError:
+            # Re-raise validation errors
+            raise
+        except Exception as e:
+            logger.error(f"Error creating meditation: {str(e)}")
+            raise MeditationGenerationError('An unexpected error occurred while creating the meditation. Please try again.')
 
-    
     def generate_meditation(self, plan_type, ritual, user_detail):
         """
         Generate meditation file using local functions based on plan type
         """
-        # Map plan types to their corresponding functions
-        function_mapping = {
-            "Sleep Manifestation": sleep_function,
-            "Morning Spark": spark_function, 
-            "Calming Reset": calm_function,
-            "Dream Visualizer": dream_function
-        }
-        
-        # Get the appropriate function
-        generation_function = function_mapping.get(plan_type.name)
-        if not generation_function:
-            raise serializers.ValidationError(f"Unknown plan type: {plan_type.name}")
-        
-        # Prepare parameters for the function
-        name = ritual.name or "Meditation"
-        goals = user_detail.goals or ""
-        dreamlife = user_detail.dream or ""
-        dream_activities = user_detail.happiness or ""
-        ritual_type = ritual.ritual_type or "Story"
-        tone = ritual.tone or "Dreamy"
-        voice = ritual.voice or "Female"
-        length = int(ritual.duration) if ritual.duration else 2
-        check_in = ""
-        
-        # Validate length parameter
-        if length not in [2, 5, 10]:
-            length = 2  # Default to 2 minutes if invalid
-        
-        # Validate ritual_type parameter
-        if ritual_type not in ["Story", "Guided"]:
-            ritual_type = "Story"
-        
-        # Validate tone parameter
-        if tone not in ["Dreamy", "ASMR"]:
-            tone = "Dreamy"
-        
-        # Validate voice parameter
-        if voice not in ["Female", "Male"]:
-            voice = "Female"
-        
-        		# Generate meditation with provided parameters
-        
         try:
-            # Call the appropriate function to generate audio
-            audio_data = generation_function(
-                name=name,
-                goals=goals,
-                dreamlife=dreamlife,
-                dream_activities=dream_activities,
-                ritual_type=ritual_type,
-                tone=tone,
-                voice=voice,
-                length=length,
-                check_in=check_in
-            )
+            # Map plan types to their corresponding functions
+            function_mapping = {
+                "Sleep Manifestation": sleep_function,
+                "Morning Spark": spark_function, 
+                "Calming Reset": calm_function,
+                "Dream Visualizer": dream_function
+            }
             
-            # Create a filename for the meditation
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"meditation_{plan_type.name.lower().replace(' ', '_')}_{timestamp}.mp3"
+            # Get the appropriate function
+            generation_function = function_mapping.get(plan_type.name)
+            if not generation_function:
+                raise PlanTypeNotFoundError(f'Unknown plan type: {plan_type.name}')
             
-            # Create ContentFile from audio data
-            content_file = ContentFile(audio_data, name=filename)
+            # Prepare parameters for the function
+            name = ritual.name if ritual and ritual.name else "Meditation"
+            goals = user_detail.goals if user_detail and user_detail.goals else ""
+            dreamlife = user_detail.dream if user_detail and user_detail.dream else ""
+            dream_activities = user_detail.happiness if user_detail and user_detail.happiness else ""
+            ritual_type = ritual.ritual_type if ritual and ritual.ritual_type else "Story"
+            tone = ritual.tone if ritual and ritual.tone else "Dreamy"
+            voice = ritual.voice if ritual and ritual.voice else "Female"
+            length = int(ritual.duration) if ritual and ritual.duration else 2
+            check_in = ""
             
-            			# Meditation generated successfully
+            # Validate length parameter
+            if length not in [2, 5, 10]:
+                length = 2  # Default to 2 minutes if invalid
             
-            return content_file
+            # Validate ritual_type parameter
+            if ritual_type not in ["Story", "Guided"]:
+                ritual_type = "Story"
             
+            # Validate tone parameter
+            if tone not in ["Dreamy", "ASMR"]:
+                tone = "Dreamy"
+            
+            # Validate voice parameter
+            if voice not in ["Female", "Male"]:
+                voice = "Female"
+            
+            # Generate meditation with provided parameters
+            try:
+                # Call the appropriate function to generate audio
+                audio_data = generation_function(
+                    name=name,
+                    goals=goals,
+                    dreamlife=dreamlife,
+                    dream_activities=dream_activities,
+                    ritual_type=ritual_type,
+                    tone=tone,
+                    voice=voice,
+                    length=length,
+                    check_in=check_in
+                )
+                
+                # Create a filename for the meditation
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                filename = f"meditation_{plan_type.name.lower().replace(' ', '_')}_{timestamp}.mp3"
+                
+                # Create ContentFile from audio data
+                content_file = ContentFile(audio_data, name=filename)
+                
+                return content_file
+                
+            except Exception as e:
+                logger.error(f"Meditation generation failed: {str(e)}")
+                return self._create_placeholder_file(plan_type, ritual)
+                
+        except serializers.ValidationError:
+            # Re-raise validation errors
+            raise
         except Exception as e:
-            # Log the error and create a placeholder file
-            			# Log error and create placeholder
-            logger.error(f"Meditation generation failed: {str(e)}")
+            logger.error(f"Error in generate_meditation: {str(e)}")
             return self._create_placeholder_file(plan_type, ritual)
     
     def _create_placeholder_file(self, plan_type, ritual):
         """
         Use a default MP3 file from muzic as the placeholder when external API is unavailable
         """
-        # Path to the default MP3 file
-        default_mp3_path = os.path.join(os.path.dirname(__file__), 'muzic', 'sleep_manifestation.mp3')
-        
-        # Generate a unique filename for the placeholder
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"meditation_{plan_type.name.lower().replace(' ', '_')}_{timestamp}.mp3"
-
         try:
+            # Path to the default MP3 file
+            default_mp3_path = os.path.join(os.path.dirname(__file__), 'muzic', 'sleep_manifestation.mp3')
+            
+            # Generate a unique filename for the placeholder
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"meditation_{plan_type.name.lower().replace(' ', '_')}_{timestamp}.mp3"
+
             with open(default_mp3_path, 'rb') as f:
                 audio_data = f.read()
             content_file = ContentFile(audio_data, name=filename)
             return content_file
+            
         except Exception as e:
             logger.error(f"Failed to load default placeholder MP3: {str(e)}")
             # Fallback: return a minimal ContentFile with error message
             content = f"Placeholder audio unavailable. Error: {str(e)}"
             return ContentFile(content.encode('utf-8'), name=filename)
-    
+
 
 class RitualsSerializer(serializers.ModelSerializer):
     class Meta:
@@ -442,3 +484,92 @@ class RitualTypeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = RitualType
         fields = ['id', 'name', 'description']
+
+
+class UserLifeVisionSerializer(serializers.ModelSerializer):
+    progress_percentage = serializers.SerializerMethodField()
+    days_remaining = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = UserLifeVision
+        fields = [
+            'id', 'title', 'description', 'vision_type', 'goal_status', 
+            'is_active', 'is_completed', 'priority', 'target_date', 
+            'completed_date', 'created_at', 'updated_at', 
+            'progress_percentage', 'days_remaining'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'completed_date']
+    
+    def get_progress_percentage(self, obj):
+        return obj.get_progress_percentage()
+    
+    def get_days_remaining(self, obj):
+        if obj.target_date:
+            from django.utils import timezone
+            today = timezone.now().date()
+            if obj.target_date > today:
+                return (obj.target_date - today).days
+            else:
+                return 0
+        return None
+    
+    def create(self, validated_data):
+        # Automatically set the user from the request
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        # If marking as completed, update the completed_date
+        if validated_data.get('is_completed') and not instance.is_completed:
+            from django.utils import timezone
+            validated_data['completed_date'] = timezone.now().date()
+            validated_data['goal_status'] = UserLifeVision.GoalStatusChoices.COMPLETED
+        
+        return super().update(instance, validated_data)
+
+
+class UserLifeVisionListSerializer(serializers.ModelSerializer):
+    progress_percentage = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = UserLifeVision
+        fields = [
+            'id', 'title', 'description', 'vision_type', 'goal_status', 
+            'is_active', 'is_completed', 'priority', 'target_date', 
+            'progress_percentage', 'created_at'
+        ]
+    
+    def get_progress_percentage(self, obj):
+        return obj.get_progress_percentage()
+
+
+class UserLifeVisionCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserLifeVision
+        fields = [
+            'title', 'description', 'vision_type', 'goal_status', 
+            'priority', 'target_date'
+        ]
+    
+    def create(self, validated_data):
+        # Automatically set the user from the request
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class UserLifeVisionUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserLifeVision
+        fields = [
+            'title', 'description', 'vision_type', 'goal_status', 
+            'is_active', 'is_completed', 'priority', 'target_date'
+        ]
+    
+    def update(self, instance, validated_data):
+        # If marking as completed, update the completed_date
+        if validated_data.get('is_completed') and not instance.is_completed:
+            from django.utils import timezone
+            validated_data['completed_date'] = timezone.now().date()
+            validated_data['goal_status'] = UserLifeVision.GoalStatusChoices.COMPLETED
+        
+        return super().update(instance, validated_data)

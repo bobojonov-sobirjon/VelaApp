@@ -20,6 +20,11 @@ from apps.accounts.views import (
 	CheckPlanStatusView,
 	CountMeditationView,
 	RitualTypeView,
+	UserLifeVisionListView,
+	UserLifeVisionCreateView,
+	UserLifeVisionDetailView,
+	UserLifeVisionCompleteView,
+	UserLifeVisionStatsView,
 )
 
 urlpatterns = [
@@ -65,4 +70,11 @@ urlpatterns = [
  
 	# Ritual Type API
 	path('ritual-types/', RitualTypeView.as_view(), name='ritual-types'),
+	
+	# Life Vision API - Separated endpoints
+	path('life-vision/', UserLifeVisionListView.as_view(), name='life-vision-list'),  # GET - List all visions
+	path('life-vision/create/', UserLifeVisionCreateView.as_view(), name='life-vision-create'),  # POST - Create new vision
+	path('life-vision/<int:vision_id>/', UserLifeVisionDetailView.as_view(), name='life-vision-detail'),  # GET, PUT, DELETE - Single vision operations
+	path('life-vision/<int:vision_id>/complete/', UserLifeVisionCompleteView.as_view(), name='life-vision-complete'),  # POST - Mark as completed
+	path('life-vision/stats/', UserLifeVisionStatsView.as_view(), name='life-vision-stats'),  # GET - Statistics
 ]

@@ -19,10 +19,11 @@ from django.utils import timezone
 from apps.accounts.serializers import (
 	SignUpSerializer, CustomAuthTokenSerializer, CustomUserDetailSerializer,
 	PasswordUpdateSerializer, PlanSerializer, CombinedProfileSerializer,
-	UserCheckInSerializer, MeditationGenerateListSerializer, MeditationLibraryListSerializer, RitualTypeListSerializer
+	UserCheckInSerializer, MeditationGenerateListSerializer, MeditationLibraryListSerializer, RitualTypeListSerializer,
+	UserLifeVisionSerializer, UserLifeVisionListSerializer, UserLifeVisionCreateSerializer, UserLifeVisionUpdateSerializer
 )
 from apps.accounts.services import GoogleLoginService, FacebookLoginService
-from apps.accounts.models import LikeMeditation, Plans, MeditationGenerate, MeditationLibrary, UserPlan
+from apps.accounts.models import LikeMeditation, Plans, MeditationGenerate, MeditationLibrary, UserPlan, UserLifeVision
 
 User = get_user_model()
 
@@ -785,3 +786,200 @@ class RitualTypeView(APIView):
 		ritual_types = RitualType.objects.all()
 		serializer = RitualTypeListSerializer(ritual_types, many=True, context={'request': request})
 		return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserLifeVisionListView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    @swagger_auto_schema(
+        operation_summary="Get all life visions for authenticated user",
+        operation_description="Retrieve all life visions, goals, and dreams for the authenticated user",
+        tags=['Life Vision'],
+        responses={
+            200: UserLifeVisionListSerializer(many=True),
+            401: "Unauthorized"
+        }
+    )
+    def get(self, request):
+        """Get all life visions for the authenticated user"""
+        visions = UserLifeVision.objects.filter(user=request.user, is_active=True)
+        
+        # Filter by vision type if provided
+        vision_type = request.query_params.get('vision_type')
+        if vision_type:
+            visions = visions.filter(vision_type=vision_type)
+        
+        # Filter by goal status if provided
+        goal_status = request.query_params.get('goal_status')
+        if goal_status:
+            visions = visions.filter(goal_status=goal_status)
+        
+        serializer = UserLifeVisionListSerializer(visions, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class UserLifeVisionCreateView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    @swagger_auto_schema(
+        operation_summary="Create a new life vision",
+        operation_description="Create a new life vision, goal, or dream for the authenticated user",
+        request_body=UserLifeVisionCreateSerializer,
+        tags=['Life Vision'],
+        responses={
+            201: UserLifeVisionSerializer(),
+            400: "Bad Request",
+            401: "Unauthorized"
+        }
+    )
+    def post(self, request):
+        """Create a new life vision"""
+        serializer = UserLifeVisionCreateSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            vision = serializer.save()
+            response_serializer = UserLifeVisionSerializer(vision)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserLifeVisionDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    @swagger_auto_schema(
+        operation_summary="Get specific life vision details",
+        operation_description="Retrieve details of a specific life vision",
+        tags=['Life Vision'],
+        responses={
+            200: UserLifeVisionSerializer(),
+            404: "Not Found",
+            401: "Unauthorized"
+        }
+    )
+    def get(self, request, vision_id):
+        """Get specific life vision details"""
+        try:
+            vision = UserLifeVision.objects.get(id=vision_id, user=request.user)
+            serializer = UserLifeVisionSerializer(vision)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except UserLifeVision.DoesNotExist:
+            return Response({"error": "Life vision not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    @swagger_auto_schema(
+        operation_summary="Update a life vision",
+        operation_description="Update an existing life vision",
+        request_body=UserLifeVisionUpdateSerializer,
+        tags=['Life Vision'],
+        responses={
+            200: UserLifeVisionSerializer(),
+            400: "Bad Request",
+            404: "Not Found",
+            401: "Unauthorized"
+        }
+    )
+    def put(self, request, vision_id):
+        """Update a life vision"""
+        try:
+            vision = UserLifeVision.objects.get(id=vision_id, user=request.user)
+            serializer = UserLifeVisionUpdateSerializer(vision, data=request.data, partial=True)
+            if serializer.is_valid():
+                updated_vision = serializer.save()
+                response_serializer = UserLifeVisionSerializer(updated_vision)
+                return Response(response_serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except UserLifeVision.DoesNotExist:
+            return Response({"error": "Life vision not found"}, status=status.HTTP_404_NOT_FOUND)
+    
+    @swagger_auto_schema(
+        operation_summary="Delete a life vision",
+        operation_description="Soft delete a life vision (marks as inactive)",
+        tags=['Life Vision'],
+        responses={
+            204: "No Content",
+            404: "Not Found",
+            401: "Unauthorized"
+        }
+    )
+    def delete(self, request, vision_id):
+        """Delete a life vision (soft delete)"""
+        try:
+            vision = UserLifeVision.objects.get(id=vision_id, user=request.user)
+            vision.is_active = False
+            vision.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except UserLifeVision.DoesNotExist:
+            return Response({"error": "Life vision not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+class UserLifeVisionCompleteView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    @swagger_auto_schema(
+        operation_summary="Mark a life vision as completed",
+        operation_description="Mark a specific life vision or goal as completed",
+        tags=['Life Vision'],
+        responses={
+            200: UserLifeVisionSerializer(),
+            404: "Not Found",
+            401: "Unauthorized"
+        }
+    )
+    def post(self, request, vision_id):
+        """Mark a life vision as completed"""
+        try:
+            vision = UserLifeVision.objects.get(id=vision_id, user=request.user)
+            vision.mark_as_completed()
+            serializer = UserLifeVisionSerializer(vision)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except UserLifeVision.DoesNotExist:
+            return Response({"error": "Life vision not found"}, status=status.HTTP_404_NOT_FOUND)
+
+
+class UserLifeVisionStatsView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    @swagger_auto_schema(
+        operation_summary="Get life vision statistics",
+        operation_description="Get statistics about user's life visions, goals, and dreams",
+        tags=['Life Vision'],
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'total_visions': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'completed_goals': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'in_progress_goals': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'not_started_goals': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'completion_rate': openapi.Schema(type=openapi.TYPE_NUMBER),
+                    'vision_type_breakdown': openapi.Schema(type=openapi.TYPE_OBJECT),
+                }
+            ),
+            401: "Unauthorized"
+        }
+    )
+    def get(self, request):
+        """Get life vision statistics for the authenticated user"""
+        visions = UserLifeVision.objects.filter(user=request.user, is_active=True)
+        
+        total_visions = visions.count()
+        completed_goals = visions.filter(is_completed=True).count()
+        in_progress_goals = visions.filter(goal_status=UserLifeVision.GoalStatusChoices.IN_PROGRESS).count()
+        not_started_goals = visions.filter(goal_status=UserLifeVision.GoalStatusChoices.NOT_STARTED).count()
+        
+        completion_rate = (completed_goals / total_visions * 100) if total_visions > 0 else 0
+        
+        # Vision type breakdown
+        vision_type_breakdown = {}
+        for vision_type, _ in UserLifeVision.VisionTypeChoices.choices:
+            count = visions.filter(vision_type=vision_type).count()
+            vision_type_breakdown[vision_type] = count
+        
+        stats = {
+            'total_visions': total_visions,
+            'completed_goals': completed_goals,
+            'in_progress_goals': in_progress_goals,
+            'not_started_goals': not_started_goals,
+            'completion_rate': round(completion_rate, 2),
+            'vision_type_breakdown': vision_type_breakdown,
+        }
+        
+        return Response(stats, status=status.HTTP_200_OK)
