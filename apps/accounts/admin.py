@@ -238,7 +238,7 @@ class PlansAdmin(admin.ModelAdmin):
     
     fieldsets = (
         (None, {'fields': ('name', 'price')}),
-        (_('Plan Type'), {'fields': ('is_monthly', 'is_annual', 'discount')}),
+        (_('Plan Type'), {'fields': ('is_monthly', 'is_annual', 'is_free_trial', 'discount')}),
     )
     inlines = [PlanDescriptionInline]
 
