@@ -16,6 +16,7 @@ from apps.accounts.models import (
     CustomUserDetail,
     LikeMeditation,
     UserCheckIn,
+    UserLifeVision,
 )
 
 
@@ -241,6 +242,13 @@ class PlansAdmin(admin.ModelAdmin):
         (_('Plan Type'), {'fields': ('is_monthly', 'is_annual', 'is_free_trial', 'discount')}),
     )
     inlines = [PlanDescriptionInline]
+    
+class UserLifeVisionAdmin(admin.ModelAdmin):
+    list_display = ('title', 'description', 'vision_type', 'goal_status', 'is_active', 'is_completed', 'priority', 'target_date', 'completed_date', 'created_at', 'updated_at')
+    list_filter = ('vision_type', 'goal_status', 'is_active', 'is_completed', 'created_at', 'updated_at')
+    search_fields = ('title', 'description')
+    ordering = ('title',)
+    
 
 
 # Register all models
@@ -249,6 +257,7 @@ admin.site.register(RitualType, RitualTypeAdmin)
 admin.site.register(MeditationGenerate, MeditationGenerateAdmin)
 admin.site.register(MeditationLibrary, MeditationLibraryAdmin)
 admin.site.register(Plans, PlansAdmin)
+admin.site.register(UserLifeVision, UserLifeVisionAdmin)
 
 # Customize admin site
 admin.site.site_header = _("Vela Admin")
