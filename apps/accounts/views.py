@@ -19,7 +19,7 @@ from django.utils import timezone
 from apps.accounts.serializers import (
 	SignUpSerializer, CustomAuthTokenSerializer, CustomUserDetailSerializer,
 	PasswordUpdateSerializer, PlanSerializer, CombinedProfileSerializer,
-	UserCheckInSerializer, MeditationGenerateListSerializer, MeditationLibraryListSerializer
+	UserCheckInSerializer, MeditationGenerateListSerializer, MeditationLibraryListSerializer, RitualTypeListSerializer
 )
 from apps.accounts.services import GoogleLoginService, FacebookLoginService
 from apps.accounts.models import LikeMeditation, Plans, MeditationGenerate, MeditationLibrary, UserPlan
@@ -771,3 +771,17 @@ class CountMeditationView(APIView):
 		archive_meditations = MeditationGenerate.objects.filter(user=user, is_deleted=True)		
 		archive_count = archive_meditations.count()
 		return Response({"count": count, "archive_count": archive_count}, status=status.HTTP_200_OK)
+
+
+class RitualTypeView(APIView):
+	permission_classes = [AllowAny]
+
+	@swagger_auto_schema(
+		responses={200: RitualTypeListSerializer(many=True)},
+		operation_description="Get all ritual types.",
+		tags=['Ritual Types']
+	)
+	def get(self, request):
+		ritual_types = RitualType.objects.all()
+		serializer = RitualTypeListSerializer(ritual_types, many=True, context={'request': request})
+		return Response(serializer.data, status=status.HTTP_200_OK)
