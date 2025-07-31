@@ -18,7 +18,7 @@ class Request(BaseModel):
     # Ritual Info
     ritual_type: Literal["Story", "Guided"]
     tone: Literal["Dreamy", "ASMR"]
-    voice: Literal["Female", "Male"]
+    voice: Literal["female", "male"]
     length: Literal[2, 5, 10]
     check_in: str = None
 
@@ -34,7 +34,7 @@ def sleep(request: Request):
                              get_word_count(request.length))
     pauses = re.sub(r'(?<=\.)\s(?![^.]*\.$)', ' --- ', script)
     try:
-        synthesis = synthesize_audio(pauses)
+        synthesis = synthesize_audio(pauses, request.voice)
     except ApiError as e:
         raise HTTPException(status_code=500, detail=f"ElevenLabs API Error: {e.body['detail']['message']}")
     mixed_audio = mix_music(synthesis)
@@ -55,7 +55,7 @@ def spark(request: Request):
                              get_word_count(request.length))
     pauses = re.sub(r'(?<=\.)\s(?![^.]*\.$)', ' --- ', script)
     try:
-        synthesis = synthesize_audio(pauses)
+        synthesis = synthesize_audio(pauses, request.voice)
     except ApiError as e:
         raise HTTPException(status_code=500, detail=f"ElevenLabs API Error: {e.body['detail']['message']}")
     mixed_audio = mix_music(synthesis)
@@ -76,7 +76,7 @@ def calm(request: Request):
                              get_word_count(request.length))
     pauses = re.sub(r'(?<=\.)\s(?![^.]*\.$)', ' --- ', script)
     try:
-        synthesis = synthesize_audio(pauses)
+        synthesis = synthesize_audio(pauses, request.voice)
     except ApiError as e:
         raise HTTPException(status_code=500, detail=f"ElevenLabs API Error: {e.body['detail']['message']}")
     mixed_audio = mix_music(synthesis)
@@ -97,7 +97,7 @@ def dream(request: Request):
                              get_word_count(request.length))
     pauses = re.sub(r'(?<=\.)\s(?![^.]*\.$)', ' --- ', script)
     try:
-        synthesis = synthesize_audio(pauses)
+        synthesis = synthesize_audio(pauses, request.voice)
     except ApiError as e:
         raise HTTPException(status_code=500, detail=f"ElevenLabs API Error: {e.body['detail']['message']}")
     mixed_audio = mix_music(synthesis)
@@ -118,7 +118,7 @@ def check_in(request: Request):
                              get_word_count(request.length))
     pauses = re.sub(r'(?<=\.)\s(?![^.]*\.$)', ' --- ', script)
     try:
-        synthesis = synthesize_audio(pauses)
+        synthesis = synthesize_audio(pauses, request.voice)
     except ApiError as e:
         raise HTTPException(status_code=500, detail=f"ElevenLabs API Error: {e.body['detail']['message']}")
     mixed_audio = mix_music(synthesis)

@@ -8,7 +8,7 @@ from typing import Literal
 
 def sleep_function(name: str, goals: str, dreamlife: str, dream_activities: str, 
                   ritual_type: Literal["Story", "Guided"], tone: Literal["Dreamy", "ASMR"], 
-                  voice: Literal["Female", "Male"], length: Literal[2, 5, 10], 
+                  voice: Literal["female", "male"], length: Literal[2, 5, 10], 
                   check_in: str = None):
     """
     Generate sleep manifestation audio using the provided parameters.
@@ -20,7 +20,7 @@ def sleep_function(name: str, goals: str, dreamlife: str, dream_activities: str,
         dream_activities: User's dream activities
         ritual_type: Type of ritual ("Story" or "Guided")
         tone: Audio tone ("Dreamy" or "ASMR")
-        voice: Voice type ("Female" or "Male")
+        voice: Voice type ("female" or "male")
         length: Audio length in minutes (2, 5, or 10)
         check_in: Optional check-in text
     
@@ -31,7 +31,7 @@ def sleep_function(name: str, goals: str, dreamlife: str, dream_activities: str,
     pauses = re.sub(r'(?<=\.)\s(?![^.]*\.$)', ' --- ', script)
     
     try:
-        synthesis = synthesize_audio(pauses)
+        synthesis = synthesize_audio(pauses, voice)
     except ApiError as e:
         raise Exception(f"ElevenLabs API Error: {e.body['detail']['message']}")
     
@@ -41,7 +41,7 @@ def sleep_function(name: str, goals: str, dreamlife: str, dream_activities: str,
 
 def spark_function(name: str, goals: str, dreamlife: str, dream_activities: str, 
                   ritual_type: Literal["Story", "Guided"], tone: Literal["Dreamy", "ASMR"], 
-                  voice: Literal["Female", "Male"], length: Literal[2, 5, 10], 
+                  voice: Literal["female", "male"], length: Literal[2, 5, 10], 
                   check_in: str = None):
     """
     Generate morning spark audio using the provided parameters.
@@ -53,7 +53,7 @@ def spark_function(name: str, goals: str, dreamlife: str, dream_activities: str,
         dream_activities: User's dream activities
         ritual_type: Type of ritual ("Story" or "Guided")
         tone: Audio tone ("Dreamy" or "ASMR")
-        voice: Voice type ("Female" or "Male")
+        voice: Voice type ("female" or "male")
         length: Audio length in minutes (2, 5, or 10)
         check_in: Optional check-in text
     
@@ -64,7 +64,7 @@ def spark_function(name: str, goals: str, dreamlife: str, dream_activities: str,
     pauses = re.sub(r'(?<=\.)\s(?![^.]*\.$)', ' --- ', script)
     
     try:
-        synthesis = synthesize_audio(pauses)
+        synthesis = synthesize_audio(pauses, voice)
     except ApiError as e:
         raise Exception(f"ElevenLabs API Error: {e.body['detail']['message']}")
     
@@ -74,7 +74,7 @@ def spark_function(name: str, goals: str, dreamlife: str, dream_activities: str,
 
 def calm_function(name: str, goals: str, dreamlife: str, dream_activities: str, 
                  ritual_type: Literal["Story", "Guided"], tone: Literal["Dreamy", "ASMR"], 
-                 voice: Literal["Female", "Male"], length: Literal[2, 5, 10], 
+                 voice: Literal["female", "male"], length: Literal[2, 5, 10], 
                  check_in: str = None):
     """
     Generate calming reset audio using the provided parameters.
@@ -86,7 +86,7 @@ def calm_function(name: str, goals: str, dreamlife: str, dream_activities: str,
         dream_activities: User's dream activities
         ritual_type: Type of ritual ("Story" or "Guided")
         tone: Audio tone ("Dreamy" or "ASMR")
-        voice: Voice type ("Female" or "Male")
+        voice: Voice type ("female" or "male")
         length: Audio length in minutes (2, 5, or 10)
         check_in: Optional check-in text
     
@@ -97,7 +97,7 @@ def calm_function(name: str, goals: str, dreamlife: str, dream_activities: str,
     pauses = re.sub(r'(?<=\.)\s(?![^.]*\.$)', ' --- ', script)
     
     try:
-        synthesis = synthesize_audio(pauses)
+        synthesis = synthesize_audio(pauses, voice)
     except ApiError as e:
         raise Exception(f"ElevenLabs API Error: {e.body['detail']['message']}")
     
@@ -107,7 +107,7 @@ def calm_function(name: str, goals: str, dreamlife: str, dream_activities: str,
 
 def dream_function(name: str, goals: str, dreamlife: str, dream_activities: str, 
                   ritual_type: Literal["Story", "Guided"], tone: Literal["Dreamy", "ASMR"], 
-                  voice: Literal["Female", "Male"], length: Literal[2, 5, 10], 
+                  voice: Literal["female", "male"], length: Literal[2, 5, 10], 
                   check_in: str = None):
     """
     Generate dream visualizer audio using the provided parameters.
@@ -119,7 +119,7 @@ def dream_function(name: str, goals: str, dreamlife: str, dream_activities: str,
         dream_activities: User's dream activities
         ritual_type: Type of ritual ("Story" or "Guided")
         tone: Audio tone ("Dreamy" or "ASMR")
-        voice: Voice type ("Female" or "Male")
+        voice: Voice type ("female" or "male")
         length: Audio length in minutes (2, 5, or 10)
         check_in: Optional check-in text
     
@@ -130,7 +130,7 @@ def dream_function(name: str, goals: str, dreamlife: str, dream_activities: str,
     pauses = re.sub(r'(?<=\.)\s(?![^.]*\.$)', ' --- ', script)
     
     try:
-        synthesis = synthesize_audio(pauses)
+        synthesis = synthesize_audio(pauses, voice)
     except ApiError as e:
         raise Exception(f"ElevenLabs API Error: {e.body['detail']['message']}")
     
@@ -140,7 +140,7 @@ def dream_function(name: str, goals: str, dreamlife: str, dream_activities: str,
 
 def check_in_function(name: str, goals: str, dreamlife: str, dream_activities: str, 
                      ritual_type: Literal["Story", "Guided"], tone: Literal["Dreamy", "ASMR"], 
-                     voice: Literal["Female", "Male"], length: Literal[2, 5, 10], 
+                     voice: Literal["female", "male"], length: Literal[2, 5, 10], 
                      check_in: str = None):
     """
     Generate check-in audio using the provided parameters.
@@ -152,7 +152,7 @@ def check_in_function(name: str, goals: str, dreamlife: str, dream_activities: s
         dream_activities: User's dream activities
         ritual_type: Type of ritual ("Story" or "Guided")
         tone: Audio tone ("Dreamy" or "ASMR")
-        voice: Voice type ("Female" or "Male")
+        voice: Voice type ("female" or "male")
         length: Audio length in minutes (2, 5, or 10)
         check_in: Optional check-in text
     
@@ -163,7 +163,7 @@ def check_in_function(name: str, goals: str, dreamlife: str, dream_activities: s
     pauses = re.sub(r'(?<=\.)\s(?![^.]*\.$)', ' --- ', script)
     
     try:
-        synthesis = synthesize_audio(pauses)
+        synthesis = synthesize_audio(pauses, voice)
     except ApiError as e:
         raise Exception(f"ElevenLabs API Error: {e.body['detail']['message']}")
     

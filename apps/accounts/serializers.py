@@ -362,7 +362,7 @@ class CombinedProfileSerializer(serializers.Serializer):
             dream_activities = user_detail.happiness if user_detail and user_detail.happiness else ""
             ritual_type = ritual.ritual_type if ritual and ritual.ritual_type else "Story"
             tone = ritual.tone if ritual and ritual.tone else "Dreamy"
-            voice = ritual.voice if ritual and ritual.voice else "Female"
+            voice = ritual.voice if ritual and ritual.voice else "female"
             length = int(ritual.duration) if ritual and ritual.duration else 2
             check_in = ""
             
@@ -379,8 +379,8 @@ class CombinedProfileSerializer(serializers.Serializer):
                 tone = "Dreamy"
             
             # Validate voice parameter
-            if voice not in ["Female", "Male"]:
-                voice = "Female"
+            if voice not in ["female", "male"]:
+                voice = "female"
             
             # Generate meditation with provided parameters
             try:
