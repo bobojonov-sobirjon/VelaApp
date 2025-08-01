@@ -1037,8 +1037,8 @@ class ExternalMeditationAPIView(APIView):
                 validated_data=serializer.validated_data
             )
             
-            # Return the result
-            if result.get("success"):
+            # Return the result - always return 200 if we have a meditation_id (successful creation)
+            if result.get("meditation_id"):
                 return Response(result, status=status.HTTP_200_OK)
             else:
                 return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
