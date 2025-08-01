@@ -303,7 +303,7 @@ class ExternalMeditationService:
             
             # Try multiple payload formats for external API
             payload_formats = [
-                # Format 1: Map new field names to external API expected field names
+                # Format 1: Correct mapping with proper case and data types
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
@@ -314,7 +314,7 @@ class ExternalMeditationService:
                     "voice": voice_mapping.get(validated_data['voice'], 'Female'),
                     "length": int(validated_data['duration'])
                 },
-                # Format 2: Different field name for ritual type
+                # Format 2: Alternative with different field name for ritual type
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
@@ -325,16 +325,17 @@ class ExternalMeditationService:
                     "voice": voice_mapping.get(validated_data['voice'], 'Female'),
                     "length": int(validated_data['duration'])
                 },
-                # Format 3: Original values without mapping but with correct field names
+                # Format 3: With both ritual_type and type fields
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
                     "dream_activities": validated_data['age_range'],
-                    "ritual_type": validated_data['ritual_type'],
-                    "tone": validated_data['tone'],
-                    "voice": validated_data['voice'],
-                    "length": validated_data['duration']
+                    "ritual_type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),
+                    "type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),
+                    "tone": tone_mapping.get(validated_data['tone'], 'Dreamy'),
+                    "voice": voice_mapping.get(validated_data['voice'], 'Female'),
+                    "length": int(validated_data['duration'])
                 }
             ]
             
