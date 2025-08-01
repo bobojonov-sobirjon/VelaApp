@@ -277,18 +277,38 @@ class ExternalMeditationService:
             # Extract data
             plan_type = validated_data['plan_type']
             
-            # Prepare request payload
+            # Transform data for external API format
+            # External API expects different field names and values
+            ritual_type_mapping = {
+                'story': 'Story',
+                'guided_meditations': 'Guided'
+            }
+            
+            tone_mapping = {
+                'dreamy': 'Dreamy',
+                'asmr': 'ASMR'
+            }
+            
+            voice_mapping = {
+                'male': 'Male',
+                'female': 'Female'
+            }
+            
+            # Prepare request payload for external API
             payload = {
                 "name": validated_data['name'],
                 "goals": validated_data['goals'],
                 "dreamlife": validated_data['dreamlife'],
                 "dream_activities": validated_data['dream_activities'],
-                "ritual_type": validated_data['ritual_type'],
-                "tone": validated_data['tone'],
-                "voice": validated_data['voice'],
-                "length": validated_data['length'],
+                "type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),  # External API expects 'type'
+                "tone": tone_mapping.get(validated_data['tone'], 'Dreamy'),
+                "voice": voice_mapping.get(validated_data['voice'], 'Female'),
+                "length": int(validated_data['length']),  # Convert to integer for external API
                 "check_in": validated_data.get('check_in', '')
             }
+            
+            # Log the payload being sent to external API
+            logger.info(f"Transformed payload for external API: {payload}")
             
             # Call external API
             response = self.call_external_api(plan_type, payload)
