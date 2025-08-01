@@ -170,7 +170,7 @@ class ExternalMeditationService:
                 api_endpoint,
                 json=payload,
                 headers=headers,
-                timeout=30
+                timeout=15
             )
             
             logger.info(f"External API Response Status: {response.status_code}")
