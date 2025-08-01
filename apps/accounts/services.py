@@ -154,10 +154,11 @@ class ExternalMeditationService:
             "Dream Visualizer": "http://31.97.98.47:8000/dream"
         }
     
-    def create_meditation_file(self, user, plan_type_id, validated_data):
+    def create_meditation_file(self, user, validated_data):
         """Create meditation file and record - ALWAYS creates a file"""
         try:
             # Get the ritual type by ID
+            plan_type_id = validated_data['plan_type']
             ritual_type = RitualType.objects.get(id=plan_type_id)
             
             # Create a ritual record
@@ -261,7 +262,7 @@ class ExternalMeditationService:
             logger.info(f"External API payload: {json.dumps(external_payload, indent=2)}")
             
             # ALWAYS create meditation record with file
-            meditation_record = self.create_meditation_file(user, plan_type_id, validated_data)
+            meditation_record = self.create_meditation_file(user, validated_data)
             
             # Generate file URL
             file_url = self.get_file_url(meditation_record)
