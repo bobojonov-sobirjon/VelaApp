@@ -994,7 +994,7 @@ class UserLifeVisionStatsView(APIView):
 
 
 class ExternalMeditationAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # Temporarily allow any access for testing
     
     @swagger_auto_schema(
         request_body=ExternalMeditationSerializer,

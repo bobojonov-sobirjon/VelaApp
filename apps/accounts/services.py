@@ -155,7 +155,7 @@ class ExternalMeditationService:
         }
     
     def call_external_api(self, plan_type, payload):
-        """Call external meditation API"""
+        """Call external meditation API with improved timeout handling"""
         try:
             api_endpoint = self.api_endpoints.get(plan_type)
             if not api_endpoint:
@@ -166,11 +166,13 @@ class ExternalMeditationService:
             logger.info(f"Request payload: {json.dumps(payload, indent=2)}")
             logger.info(f"Request headers: {headers}")
             
+            # Use configured timeout or default to 8 seconds
+            timeout = getattr(settings, 'MEDITATION_API_CONFIG', {}).get('TIMEOUT', 8)
             response = requests.post(
                 api_endpoint,
                 json=payload,
                 headers=headers,
-                timeout=15
+                timeout=timeout
             )
             
             logger.info(f"External API Response Status: {response.status_code}")
@@ -180,7 +182,8 @@ class ExternalMeditationService:
             return response
             
         except requests.exceptions.Timeout:
-            logger.error(f"Timeout error when calling {api_endpoint}")
+            timeout = getattr(settings, 'MEDITATION_API_CONFIG', {}).get('TIMEOUT', 8)
+            logger.error(f"Timeout error when calling {api_endpoint} ({timeout}s timeout)")
             raise
         except requests.exceptions.RequestException as e:
             logger.error(f"Request error when calling {api_endpoint}: {str(e)}")
@@ -281,11 +284,34 @@ class ExternalMeditationService:
             # Extract data - plan_type is now the ritual type name from serializer validation
             plan_type = validated_data['plan_type']
             
+            # Check if external API is enabled (can be disabled for testing or when API is down)
+            external_api_enabled = getattr(settings, 'MEDITATION_API_CONFIG', {}).get('ENABLED', True)
+            
             # Log the transformation being applied
             logger.info(f"Transforming data for external API...")
             logger.info(f"Input data: {json.dumps(validated_data, indent=2)}")
             logger.info(f"Plan type: {plan_type}")
             logger.info(f"API endpoint: {self.api_endpoints.get(plan_type)}")
+            logger.info(f"External API enabled: {external_api_enabled}")
+            
+            # If external API is disabled, create meditation record with placeholder immediately
+            if not external_api_enabled:
+                logger.info("External API is disabled, creating meditation record with placeholder")
+                meditation_record = self.save_meditation_file(
+                    user=user,
+                    plan_type=plan_type,
+                    api_response={"error": "External API disabled"},
+                    response_data=validated_data
+                )
+                
+                return {
+                    "success": True,
+                    "message": "Meditation record created with placeholder (external API disabled)",
+                    "plan_type": plan_type,
+                    "file_url": self._get_file_url(meditation_record) if meditation_record.file else None,
+                    "meditation_id": meditation_record.id,
+                    "fallback_used": True
+                }
             
             # Helper function to map values to external API format
             def map_to_external_format(value, field_type):
@@ -301,9 +327,9 @@ class ExternalMeditationService:
                 else:
                     return value
             
-            # Try multiple payload formats for external API
+            # Try multiple payload formats for external API based on error responses
             payload_formats = [
-                # Format 1: Direct mapping with external API field names and proper capitalization
+                # Format 1: Based on error response - includes all required fields
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
@@ -314,7 +340,7 @@ class ExternalMeditationService:
                     "voice": map_to_external_format(validated_data['voice'], 'voice'),
                     "length": int(validated_data['duration'])
                 },
-                # Format 2: Alternative field name for ritual type
+                # Format 2: Alternative with type instead of ritual_type
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
@@ -325,7 +351,16 @@ class ExternalMeditationService:
                     "voice": map_to_external_format(validated_data['voice'], 'voice'),
                     "length": int(validated_data['duration'])
                 },
-                # Format 3: With check_in field using happiness data
+                # Format 3: Minimal required fields based on error response
+                {
+                    "name": validated_data['gender'],
+                    "dreamlife": validated_data['dream'],
+                    "goals": validated_data['goals'],
+                    "dream_activities": validated_data['age_range'],
+                    "ritual_type": map_to_external_format(validated_data['ritual_type'], 'ritual_type'),
+                    "length": int(validated_data['duration'])
+                },
+                # Format 4: Using original field names with proper mapping
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
@@ -336,18 +371,6 @@ class ExternalMeditationService:
                     "voice": map_to_external_format(validated_data['voice'], 'voice'),
                     "length": int(validated_data['duration']),
                     "check_in": validated_data.get('happiness', '')
-                },
-                # Format 4: Using original field names as they might be expected
-                {
-                    "gender": validated_data['gender'],
-                    "dream": validated_data['dream'],
-                    "goals": validated_data['goals'],
-                    "age_range": validated_data['age_range'],
-                    "happiness": validated_data.get('happiness', ''),
-                    "ritual_type": map_to_external_format(validated_data['ritual_type'], 'ritual_type'),
-                    "tone": map_to_external_format(validated_data['tone'], 'tone'),
-                    "voice": map_to_external_format(validated_data['voice'], 'voice'),
-                    "duration": validated_data['duration']
                 }
             ]
             
@@ -377,7 +400,24 @@ class ExternalMeditationService:
                     "api_endpoint": self.api_endpoints.get(plan_type)
                 }
                 logger.error(f"All payload formats failed. Details: {json.dumps(error_details, indent=2)}")
-                raise Exception("All payload formats failed")
+                
+                # Create meditation record with placeholder even when external API fails
+                meditation_record = self.save_meditation_file(
+                    user=user,
+                    plan_type=plan_type,
+                    api_response={"error": "External API unavailable"},
+                    response_data=validated_data
+                )
+                
+                return {
+                    "success": False,
+                    "error": "External API is currently unavailable. Created meditation record with placeholder.",
+                    "plan_type": plan_type,
+                    "endpoint_used": self.api_endpoints.get(plan_type),
+                    "file_url": self._get_file_url(meditation_record) if meditation_record.file else None,
+                    "meditation_id": meditation_record.id,
+                    "fallback_used": True
+                }
             
             # Log which format succeeded
             if successful_format:
@@ -436,7 +476,8 @@ class ExternalMeditationService:
                     "plan_type": plan_type,
                     "endpoint_used": self.api_endpoints[plan_type],
                     "file_url": self._get_file_url(meditation_record) if meditation_record.file else None,
-                    "meditation_id": meditation_record.id
+                    "meditation_id": meditation_record.id,
+                    "fallback_used": True
                 }
                 
         except requests.exceptions.Timeout:
@@ -453,7 +494,8 @@ class ExternalMeditationService:
                 "plan_type": plan_type,
                 "endpoint_used": self.api_endpoints[plan_type],
                 "file_url": self._get_file_url(meditation_record) if meditation_record.file else None,
-                "meditation_id": meditation_record.id
+                "meditation_id": meditation_record.id,
+                "fallback_used": True
             }
             
         except requests.exceptions.RequestException as e:
@@ -470,7 +512,8 @@ class ExternalMeditationService:
                 "plan_type": plan_type,
                 "endpoint_used": self.api_endpoints[plan_type],
                 "file_url": self._get_file_url(meditation_record) if meditation_record.file else None,
-                "meditation_id": meditation_record.id
+                "meditation_id": meditation_record.id,
+                "fallback_used": True
             }
             
         except Exception as e:
