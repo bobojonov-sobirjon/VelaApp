@@ -576,6 +576,10 @@ class UserLifeVisionUpdateSerializer(serializers.ModelSerializer):
 class ExternalMeditationSerializer(serializers.Serializer):
     """
     Serializer for external meditation API requests
+    
+    The plan_type field accepts a RitualType ID and validates that it exists.
+    The validation method returns the ritual type name which is used to determine
+    the appropriate external API endpoint.
     """
     name = serializers.CharField(max_length=100, required=True, help_text="User's name")
     goals = serializers.CharField(required=True, help_text="User's goals")

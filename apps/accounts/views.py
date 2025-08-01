@@ -1013,13 +1013,15 @@ class ExternalMeditationAPIView(APIView):
                     "success": openapi.Schema(type=openapi.TYPE_BOOLEAN),
                     "message": openapi.Schema(type=openapi.TYPE_STRING),
                     "api_response": openapi.Schema(type=openapi.TYPE_OBJECT),
-                    "endpoint_used": openapi.Schema(type=openapi.TYPE_STRING)
+                    "endpoint_used": openapi.Schema(type=openapi.TYPE_STRING),
+                    "file_url": openapi.Schema(type=openapi.TYPE_STRING, description="URL to the saved meditation file"),
+                    "meditation_id": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID of the saved meditation record")
                 }
             ),
             400: "Bad Request: Invalid plan type or missing required fields",
             500: "Internal Server Error: API request failed"
         },
-        operation_description="Send meditation request to external API based on plan type. Plan types: Sleep Manifestation, Morning Spark, Calming Reset, Dream Visualizer",
+        operation_description="Send meditation request to external API based on plan type ID. The plan_type field should be a valid RitualType ID that exists in the database. The response includes the saved file URL and meditation record ID.",
         tags=['External Meditation API']
     )
     def post(self, request):
@@ -1073,41 +1075,91 @@ class ExternalMeditationAPIView(APIView):
                 if response.status_code == 200:
                     try:
                         api_response = response.json()
+                        
+                        # Save the meditation file and create record
+                        meditation_record = self.save_meditation_file(
+                            user=request.user,
+                            plan_type=plan_type,
+                            api_response=api_response,
+                            response_data=data
+                        )
+                        
                         return Response({
                             "success": True,
                             "message": f"Successfully sent request to {plan_type} API",
                             "api_response": api_response,
-                            "endpoint_used": api_endpoint
+                            "endpoint_used": api_endpoint,
+                            "file_url": meditation_record.file.url if meditation_record.file else None,
+                            "meditation_id": meditation_record.id
                         }, status=status.HTTP_200_OK)
                     except json.JSONDecodeError:
+                        # Handle case where response is not JSON (might be binary file)
+                        meditation_record = self.save_meditation_file(
+                            user=request.user,
+                            plan_type=plan_type,
+                            api_response={"raw_response": response.text},
+                            response_data=data,
+                            binary_data=response.content
+                        )
+                        
                         return Response({
                             "success": True,
                             "message": f"Successfully sent request to {plan_type} API",
                             "api_response": {"raw_response": response.text},
-                            "endpoint_used": api_endpoint
+                            "endpoint_used": api_endpoint,
+                            "file_url": meditation_record.file.url if meditation_record.file else None,
+                            "meditation_id": meditation_record.id
                         }, status=status.HTTP_200_OK)
                 else:
+                    # Even if external API fails, create a meditation record with placeholder
+                    meditation_record = self.save_meditation_file(
+                        user=request.user,
+                        plan_type=plan_type,
+                        api_response={"error": response.text},
+                        response_data=data
+                    )
+                    
                     return Response({
                         "success": False,
                         "error": f"External API returned status {response.status_code}",
                         "api_response": {"error": response.text},
-                        "endpoint_used": api_endpoint
+                        "endpoint_used": api_endpoint,
+                        "file_url": meditation_record.file.url if meditation_record.file else None,
+                        "meditation_id": meditation_record.id
                     }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                     
             except requests.exceptions.Timeout:
                 logger.error(f"Timeout error when calling {api_endpoint}")
+                # Create meditation record with placeholder even on timeout
+                meditation_record = self.save_meditation_file(
+                    user=request.user,
+                    plan_type=plan_type,
+                    api_response={"error": "Timeout"},
+                    response_data=data
+                )
                 return Response({
                     "success": False,
                     "error": f"Timeout error when calling {plan_type} API",
-                    "endpoint_used": api_endpoint
+                    "endpoint_used": api_endpoint,
+                    "file_url": meditation_record.file.url if meditation_record.file else None,
+                    "meditation_id": meditation_record.id
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 
             except requests.exceptions.RequestException as e:
                 logger.error(f"Request error when calling {api_endpoint}: {str(e)}")
+                # Create meditation record with placeholder even on request error
+                meditation_record = self.save_meditation_file(
+                    user=request.user,
+                    plan_type=plan_type,
+                    api_response={"error": str(e)},
+                    response_data=data
+                )
                 return Response({
                     "success": False,
                     "error": f"Request error when calling {plan_type} API: {str(e)}",
-                    "endpoint_used": api_endpoint
+                    "endpoint_used": api_endpoint,
+                    "file_url": meditation_record.file.url if meditation_record.file else None,
+                    "meditation_id": meditation_record.id
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
                 
         except Exception as e:
@@ -1116,5 +1168,100 @@ class ExternalMeditationAPIView(APIView):
                 "success": False,
                 "error": f"Unexpected error: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def save_meditation_file(self, user, plan_type, api_response, response_data, binary_data=None):
+        """
+        Save the meditation file and create a meditation record
+        """
+        try:
+            from apps.accounts.models import RitualType, Rituals, MeditationGenerate
+            from django.db import transaction
+            
+            # Get the ritual type
+            ritual_type = RitualType.objects.get(name=plan_type)
+            
+            # Create a ritual record
+            ritual = Rituals.objects.create(
+                name=f"{plan_type} Meditation",
+                description=f"Generated meditation for {plan_type}",
+                ritual_type=response_data.get('ritual_type', 'Story'),
+                tone=response_data.get('tone', 'Dreamy'),
+                voice=response_data.get('voice', 'Female'),
+                duration=str(response_data.get('length', 2))
+            )
+            
+            # Generate filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"external_meditation_{plan_type.lower().replace(' ', '_')}_{timestamp}.mp3"
+            
+            # Create file content
+            if binary_data:
+                # Use binary data from response
+                file_content = ContentFile(binary_data, name=filename)
+            else:
+                # Try to extract file data from API response
+                if 'file' in api_response and api_response['file']:
+                    import base64
+                    try:
+                        # Decode base64 file data if present
+                        file_data = base64.b64decode(api_response['file'])
+                        file_content = ContentFile(file_data, name=filename)
+                    except:
+                        # Fallback to placeholder
+                        file_content = self.create_placeholder_file(filename)
+                else:
+                    # Create placeholder file
+                    file_content = self.create_placeholder_file(filename)
+            
+            # Create meditation record
+            with transaction.atomic():
+                meditation = MeditationGenerate.objects.create(
+                    user=user,
+                    details=ritual,
+                    ritual_type=ritual_type,
+                    file=file_content
+                )
+            
+            logger.info(f"Saved meditation file: {filename} for user {user.id}")
+            return meditation
+            
+        except Exception as e:
+            logger.error(f"Error saving meditation file: {str(e)}")
+            # Return a minimal meditation record without file
+            from apps.accounts.models import RitualType, Rituals, MeditationGenerate
+            ritual_type = RitualType.objects.get(name=plan_type)
+            ritual = Rituals.objects.create(
+                name=f"{plan_type} Meditation",
+                description=f"Generated meditation for {plan_type}",
+                ritual_type=response_data.get('ritual_type', 'Story'),
+                tone=response_data.get('tone', 'Dreamy'),
+                voice=response_data.get('voice', 'Female'),
+                duration=str(response_data.get('length', 2))
+            )
+            meditation = MeditationGenerate.objects.create(
+                user=user,
+                details=ritual,
+                ritual_type=ritual_type
+            )
+            return meditation
+    
+    def create_placeholder_file(self, filename):
+        """
+        Create a placeholder file when external API doesn't return a file
+        """
+        try:
+            import os
+            # Path to the default MP3 file
+            default_mp3_path = os.path.join(os.path.dirname(__file__), 'muzic', 'sleep_manifestation.mp3')
+            
+            with open(default_mp3_path, 'rb') as f:
+                audio_data = f.read()
+            return ContentFile(audio_data, name=filename)
+            
+        except Exception as e:
+            logger.error(f"Failed to load default placeholder MP3: {str(e)}")
+            # Fallback: return a minimal ContentFile with error message
+            content = f"Placeholder audio unavailable. Error: {str(e)}"
+            return ContentFile(content.encode('utf-8'), name=filename)
 
 
