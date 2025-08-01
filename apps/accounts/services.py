@@ -303,41 +303,38 @@ class ExternalMeditationService:
             
             # Try multiple payload formats for external API
             payload_formats = [
-                # Format 1: New field names with mapped values
+                # Format 1: Map new field names to external API expected field names
                 {
-                    "gender": validated_data['gender'],
-                    "dream": validated_data['dream'],
+                    "name": validated_data['gender'],
+                    "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
-                    "age_range": validated_data['age_range'],
-                    "happiness": validated_data['happiness'],
+                    "dream_activities": validated_data['age_range'],
                     "ritual_type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),
                     "tone": tone_mapping.get(validated_data['tone'], 'Dreamy'),
                     "voice": voice_mapping.get(validated_data['voice'], 'Female'),
-                    "duration": int(validated_data['duration'])
+                    "length": int(validated_data['duration'])
                 },
                 # Format 2: Different field name for ritual type
                 {
-                    "gender": validated_data['gender'],
-                    "dream": validated_data['dream'],
+                    "name": validated_data['gender'],
+                    "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
-                    "age_range": validated_data['age_range'],
-                    "happiness": validated_data['happiness'],
+                    "dream_activities": validated_data['age_range'],
                     "type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),
                     "tone": tone_mapping.get(validated_data['tone'], 'Dreamy'),
                     "voice": voice_mapping.get(validated_data['voice'], 'Female'),
-                    "duration": int(validated_data['duration'])
+                    "length": int(validated_data['duration'])
                 },
-                # Format 3: Original values without mapping
+                # Format 3: Original values without mapping but with correct field names
                 {
-                    "gender": validated_data['gender'],
-                    "dream": validated_data['dream'],
+                    "name": validated_data['gender'],
+                    "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
-                    "age_range": validated_data['age_range'],
-                    "happiness": validated_data['happiness'],
+                    "dream_activities": validated_data['age_range'],
                     "ritual_type": validated_data['ritual_type'],
                     "tone": validated_data['tone'],
                     "voice": validated_data['voice'],
-                    "duration": validated_data['duration']
+                    "length": validated_data['duration']
                 }
             ]
             
