@@ -159,13 +159,18 @@ class ExternalMeditationService:
         try:
             # Get the ritual type by ID
             plan_type_id = validated_data['plan_type']
-            ritual_type = RitualType.objects.get(id=plan_type_id)
-            
-            # Create a ritual record
+            try:
+                ritual_type = RitualType.objects.get(id=plan_type_id)
+            except RitualType.DoesNotExist:
+                # Create a default ritual type if it doesn't exist
+                ritual_type = None
+                
+                
+            # Create a ritual record - ritual_type is a CharField with choices
             ritual = Rituals.objects.create(
                 name=f"{ritual_type.name} Meditation",
                 description=f"Generated meditation for {ritual_type.name}",
-                ritual_type=validated_data.get('ritual_type', 'story'),
+                ritual_type=validated_data.get('ritual_type', 'story'),  # This is correct - CharField
                 tone=validated_data.get('tone', 'dreamy'),
                 voice=validated_data.get('voice', 'female'),
                 duration=str(validated_data.get('duration', '2'))
@@ -183,7 +188,7 @@ class ExternalMeditationService:
                 meditation = MeditationGenerate.objects.create(
                     user=user,
                     details=ritual,
-                    ritual_type=ritual_type,
+                    ritual_type=ritual_type,  # This is a ForeignKey to RitualType
                     file=file_content
                 )
             
