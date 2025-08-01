@@ -308,7 +308,6 @@ class ExternalMeditationService:
                         "success": True,
                         "message": f"Successfully sent request to {plan_type} API",
                         "plan_type": plan_type,
-                        "api_response": api_response,
                         "endpoint_used": self.api_endpoints[plan_type],
                         "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
                         "meditation_id": meditation_record.id
@@ -328,7 +327,6 @@ class ExternalMeditationService:
                         "success": True,
                         "message": f"Successfully sent request to {plan_type} API",
                         "plan_type": plan_type,
-                        "api_response": {"raw_response": response.text},
                         "endpoint_used": self.api_endpoints[plan_type],
                         "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
                         "meditation_id": meditation_record.id
@@ -346,7 +344,6 @@ class ExternalMeditationService:
                     "success": False,
                     "error": f"External API returned status {response.status_code}",
                     "plan_type": plan_type,
-                    "api_response": {"error": response.text},
                     "endpoint_used": self.api_endpoints[plan_type],
                     "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
                     "meditation_id": meditation_record.id
