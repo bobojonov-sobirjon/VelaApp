@@ -1,3 +1,7 @@
+import requests
+import json
+import logging
+from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -20,12 +24,16 @@ from apps.accounts.serializers import (
 	SignUpSerializer, CustomAuthTokenSerializer, CustomUserDetailSerializer,
 	PasswordUpdateSerializer, PlanSerializer, CombinedProfileSerializer,
 	UserCheckInSerializer, MeditationGenerateListSerializer, MeditationLibraryListSerializer, RitualTypeListSerializer,
-	UserLifeVisionSerializer, UserLifeVisionListSerializer, UserLifeVisionCreateSerializer, UserLifeVisionUpdateSerializer
+	UserLifeVisionSerializer, UserLifeVisionListSerializer, UserLifeVisionCreateSerializer, UserLifeVisionUpdateSerializer,
+	ExternalMeditationSerializer
 )
 from apps.accounts.services import GoogleLoginService, FacebookLoginService
 from apps.accounts.models import LikeMeditation, Plans, MeditationGenerate, MeditationLibrary, UserPlan, UserLifeVision
 
 User = get_user_model()
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 
 class GoogleLoginAPIView(APIView):
@@ -983,3 +991,130 @@ class UserLifeVisionStatsView(APIView):
         }
         
         return Response(stats, status=status.HTTP_200_OK)
+
+
+class ExternalMeditationAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    # API endpoint mapping
+    API_ENDPOINTS = {
+        "Sleep Manifestation": "http://31.97.98.47:8000/sleep",
+        "Morning Spark": "http://31.97.98.47:8000/spark", 
+        "Calming Reset": "http://31.97.98.47:8000/calm",
+        "Dream Visualizer": "http://31.97.98.47:8000/dream"
+    }
+    
+    @swagger_auto_schema(
+        request_body=ExternalMeditationSerializer,
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "success": openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                    "message": openapi.Schema(type=openapi.TYPE_STRING),
+                    "api_response": openapi.Schema(type=openapi.TYPE_OBJECT),
+                    "endpoint_used": openapi.Schema(type=openapi.TYPE_STRING)
+                }
+            ),
+            400: "Bad Request: Invalid plan type or missing required fields",
+            500: "Internal Server Error: API request failed"
+        },
+        operation_description="Send meditation request to external API based on plan type. Plan types: Sleep Manifestation, Morning Spark, Calming Reset, Dream Visualizer",
+        tags=['External Meditation API']
+    )
+    def post(self, request):
+        """
+        Send meditation request to external API based on plan type
+        """
+        try:
+            # Validate input data using serializer
+            serializer = ExternalMeditationSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({
+                    "error": "Validation failed",
+                    "details": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Extract validated data
+            data = serializer.validated_data
+            plan_type = data['plan_type']
+            
+            # Get the appropriate API endpoint
+            api_endpoint = self.API_ENDPOINTS[plan_type]
+            
+            # Prepare request payload
+            payload = {
+                "name": data['name'],
+                "goals": data['goals'],
+                "dreamlife": data['dreamlife'],
+                "dream_activities": data['dream_activities'],
+                "ritual_type": data['ritual_type'],
+                "tone": data['tone'],
+                "voice": data['voice'],
+                "length": data['length'],
+                "check_in": data.get('check_in', '')
+            }
+            
+            # Send request to external API with timeout
+            logger.info(f"Sending request to {api_endpoint} with payload: {payload}")
+            
+            try:
+                response = requests.post(
+                    api_endpoint,
+                    json=payload,
+                    headers={'Content-Type': 'application/json'},
+                    timeout=30  # 30 second timeout
+                )
+                
+                # Log response for debugging
+                logger.info(f"API Response Status: {response.status_code}")
+                logger.info(f"API Response: {response.text}")
+                
+                if response.status_code == 200:
+                    try:
+                        api_response = response.json()
+                        return Response({
+                            "success": True,
+                            "message": f"Successfully sent request to {plan_type} API",
+                            "api_response": api_response,
+                            "endpoint_used": api_endpoint
+                        }, status=status.HTTP_200_OK)
+                    except json.JSONDecodeError:
+                        return Response({
+                            "success": True,
+                            "message": f"Successfully sent request to {plan_type} API",
+                            "api_response": {"raw_response": response.text},
+                            "endpoint_used": api_endpoint
+                        }, status=status.HTTP_200_OK)
+                else:
+                    return Response({
+                        "success": False,
+                        "error": f"External API returned status {response.status_code}",
+                        "api_response": {"error": response.text},
+                        "endpoint_used": api_endpoint
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                    
+            except requests.exceptions.Timeout:
+                logger.error(f"Timeout error when calling {api_endpoint}")
+                return Response({
+                    "success": False,
+                    "error": f"Timeout error when calling {plan_type} API",
+                    "endpoint_used": api_endpoint
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Request error when calling {api_endpoint}: {str(e)}")
+                return Response({
+                    "success": False,
+                    "error": f"Request error when calling {plan_type} API: {str(e)}",
+                    "endpoint_used": api_endpoint
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        except Exception as e:
+            logger.error(f"Unexpected error in ExternalMeditationAPIView: {str(e)}")
+            return Response({
+                "success": False,
+                "error": f"Unexpected error: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+

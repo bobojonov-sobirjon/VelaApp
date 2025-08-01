@@ -25,6 +25,7 @@ from apps.accounts.views import (
 	UserLifeVisionDetailView,
 	UserLifeVisionCompleteView,
 	UserLifeVisionStatsView,
+	ExternalMeditationAPIView,
 )
 
 urlpatterns = [
@@ -39,6 +40,9 @@ urlpatterns = [
 	
 	# Combined Profile API
 	path('meditation/combined/', CombinedProfileView.as_view(), name='combined-profile'),
+	
+	# External Meditation API
+	path('meditation/external/', ExternalMeditationAPIView.as_view(), name='external-meditation'),
  
 	# Like Meditation API
 	path('like-meditation/<int:id>/', LikeMeditationView.as_view(), name='like-meditation'),

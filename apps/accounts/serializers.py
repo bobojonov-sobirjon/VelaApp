@@ -564,12 +564,64 @@ class UserLifeVisionUpdateSerializer(serializers.ModelSerializer):
             'title', 'description', 'vision_type', 'goal_status', 
             'is_active', 'is_completed', 'priority', 'target_date'
         ]
-    
+
     def update(self, instance, validated_data):
         # If marking as completed, update the completed_date
-        if validated_data.get('is_completed') and not instance.is_completed:
-            from django.utils import timezone
-            validated_data['completed_date'] = timezone.now().date()
-            validated_data['goal_status'] = UserLifeVision.GoalStatusChoices.COMPLETED
+        if validated_data.get('is_completed', False) and not instance.is_completed:
+            instance.completed_date = timezone.now().date()
         
         return super().update(instance, validated_data)
+
+
+class ExternalMeditationSerializer(serializers.Serializer):
+    """
+    Serializer for external meditation API requests
+    """
+    name = serializers.CharField(max_length=100, required=True, help_text="User's name")
+    goals = serializers.CharField(required=True, help_text="User's goals")
+    dreamlife = serializers.CharField(required=True, help_text="User's dream life")
+    dream_activities = serializers.CharField(required=True, help_text="User's dream activities")
+    ritual_type = serializers.ChoiceField(
+        choices=[("Story", "Story"), ("Guided", "Guided")], 
+        default="Story",
+        help_text="Type of ritual"
+    )
+    tone = serializers.ChoiceField(
+        choices=[("Dreamy", "Dreamy"), ("ASMR", "ASMR")], 
+        default="Dreamy",
+        help_text="Audio tone"
+    )
+    voice = serializers.ChoiceField(
+        choices=[("Female", "Female"), ("Male", "Male")], 
+        default="Female",
+        help_text="Voice type"
+    )
+    length = serializers.IntegerField(
+        min_value=2, 
+        max_value=10, 
+        default=2,
+        help_text="Audio length in minutes"
+    )
+    check_in = serializers.CharField(required=False, allow_blank=True, default="", help_text="Check-in text")
+    plan_type = serializers.CharField(required=True, help_text="Plan type to determine API endpoint")
+    
+    def validate_plan_type(self, value):
+        """
+        Validate that the plan type is one of the supported types
+        """
+        valid_plan_types = ["Sleep Manifestation", "Morning Spark", "Calming Reset", "Dream Visualizer"]
+        if value not in valid_plan_types:
+            raise serializers.ValidationError(
+                f"Plan type must be one of: {', '.join(valid_plan_types)}"
+            )
+        return value
+    
+    def validate_length(self, value):
+        """
+        Validate that length is one of the allowed values
+        """
+        if value not in [2, 5, 10]:
+            raise serializers.ValidationError("Length must be 2, 5, or 10 minutes")
+        return value
+
+
