@@ -1,158 +1,394 @@
 import requests
+import json
+import logging
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
-from rest_framework_simplejwt.tokens import RefreshToken
-from urllib.parse import urlencode
+from django.core.files.base import ContentFile
+from django.db import transaction
+from datetime import datetime
+import os
 
-from apps.accounts.models import CustomUser
+from apps.accounts.models import RitualType, Rituals, MeditationGenerate
+
+logger = logging.getLogger(__name__)
 
 
 class GoogleLoginService:
-    AUTH_URL = "https://accounts.google.com/o/oauth2/auth"
-    TOKEN_URL = "https://oauth2.googleapis.com/token"
-    USER_INFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+    def __init__(self):
+        self.client_id = settings.GOOGLE_CLIENT_ID
+        self.client_secret = settings.GOOGLE_CLIENT_SECRET
+        self.redirect_uri = settings.GOOGLE_REDIRECT_URI
+        self.auth_url = "https://accounts.google.com/o/oauth2/v2/auth"
+        self.token_url = "https://oauth2.googleapis.com/token"
+        self.userinfo_url = "https://www.googleapis.com/oauth2/v2/userinfo"
 
     def get_authorization_url(self):
+        """Generate Google OAuth2 authorization URL"""
         params = {
-            "client_id": settings.GOOGLE_CLIENT_ID,
-            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
-            "response_type": "code",
-            "scope": "openid email profile",
-            "access_type": "offline",
+            'client_id': self.client_id,
+            'redirect_uri': self.redirect_uri,
+            'scope': 'email profile',
+            'response_type': 'code',
+            'access_type': 'offline',
+            'prompt': 'consent'
         }
-        auth_url = f"{self.AUTH_URL}?{'&'.join([f'{k}={v}' for k, v in params.items()])}"
-        return auth_url
+        
+        query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
+        return f"{self.auth_url}?{query_string}"
 
-    def get_tokens(self, code):
-        data = {
-            "code": code,
-            "client_id": settings.GOOGLE_CLIENT_ID,
-            "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
-            "grant_type": "authorization_code",
-        }
-
+    def exchange_code_for_tokens(self, code):
+        """Exchange authorization code for access and refresh tokens"""
         try:
-            response = requests.post(self.TOKEN_URL, data=data)
-            response_data = response.json()
-            return response_data
+            response = requests.post(self.token_url, data={
+                'client_id': self.client_id,
+                'client_secret': self.client_secret,
+                'code': code,
+                'grant_type': 'authorization_code',
+                'redirect_uri': self.redirect_uri
+            })
+            
+            if response.status_code == 200:
+                token_data = response.json()
+                return {
+                    'access_token': token_data.get('access_token'),
+                    'refresh_token': token_data.get('refresh_token'),
+                    'expires_in': token_data.get('expires_in')
+                }
+            else:
+                logger.error(f"Google token exchange failed: {response.status_code} - {response.text}")
+                return None
+                
         except Exception as e:
-            return {"error": f"Token exchange error: {str(e)}"}
+            logger.error(f"Error exchanging Google code for tokens: {str(e)}")
+            return None
 
     def get_user_info(self, access_token):
+        """Get user information from Google"""
         try:
-            response = requests.get(self.USER_INFO_URL, params={"access_token": access_token})
-            response_data = response.json()
-            return response_data
+            headers = {'Authorization': f'Bearer {access_token}'}
+            response = requests.get(self.userinfo_url, headers=headers)
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"Failed to get Google user info: {response.status_code}")
+                return None
+                
         except Exception as e:
-            return {"error": f"User info error: {str(e)}"}
-
-    def create_or_get_user(self, user_info):
-        try:
-            email = user_info['email']
-            try:
-                user = CustomUser.objects.get(email=email)
-            except ObjectDoesNotExist:
-                user_data = {
-                    'email': user_info['email'],
-                    'first_name': user_info.get('given_name', ''),
-                    'last_name': user_info.get('family_name', ''),
-                    'username': user_info['email'],
-                    'is_active': True,
-                }
-                user = CustomUser.objects.create(**user_data)
-
-            return user
-        except Exception as e:
-            raise e
-
-    def get_jwt_token(self, user):
-        if not user.username:
-            user.username = user.email
-            user.save()
-        
-        try:
-            refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-            refresh_token = str(refresh)
-            return access_token, refresh_token
-        except Exception as e:
-            raise e
+            logger.error(f"Error getting Google user info: {str(e)}")
+            return None
 
 
 class FacebookLoginService:
-    AUTH_URL = "https://www.facebook.com/v18.0/dialog/oauth"
-    TOKEN_URL = "https://graph.facebook.com/v18.0/oauth/access_token"
-    USER_INFO_URL = "https://graph.facebook.com/v18.0/me"
+    def __init__(self):
+        self.client_id = settings.FACEBOOK_CLIENT_ID
+        self.client_secret = settings.FACEBOOK_CLIENT_SECRET
+        self.redirect_uri = settings.FACEBOOK_REDIRECT_URI
+        self.auth_url = "https://www.facebook.com/v18.0/dialog/oauth"
+        self.token_url = "https://graph.facebook.com/v18.0/oauth/access_token"
+        self.userinfo_url = "https://graph.facebook.com/v18.0/me"
 
     def get_authorization_url(self):
+        """Generate Facebook OAuth2 authorization URL"""
         params = {
-            "client_id": settings.FACEBOOK_APP_ID,
-            "redirect_uri": settings.FACEBOOK_REDIRECT_URI,
-            "response_type": "code",
-            "scope": "email,public_profile",
+            'client_id': self.client_id,
+            'redirect_uri': self.redirect_uri,
+            'scope': 'email public_profile',
+            'response_type': 'code'
         }
-        auth_url = f"{self.AUTH_URL}?{urlencode(params)}"
-        return auth_url
+        
+        query_string = '&'.join([f"{k}={v}" for k, v in params.items()])
+        return f"{self.auth_url}?{query_string}"
 
-    def get_tokens(self, code):
-        data = {
-            "code": code,
-            "client_id": settings.FACEBOOK_APP_ID,
-            "client_secret": settings.FACEBOOK_APP_SECRET,
-            "redirect_uri": settings.FACEBOOK_REDIRECT_URI,
-        }
-
+    def exchange_code_for_tokens(self, code):
+        """Exchange authorization code for access token"""
         try:
-            response = requests.get(self.TOKEN_URL, params=data)
-            response_data = response.json()
-            return response_data
+            response = requests.get(self.token_url, params={
+                'client_id': self.client_id,
+                'client_secret': self.client_secret,
+                'code': code,
+                'redirect_uri': self.redirect_uri
+            })
+            
+            if response.status_code == 200:
+                token_data = response.json()
+                return {
+                    'access_token': token_data.get('access_token'),
+                    'expires_in': token_data.get('expires_in')
+                }
+            else:
+                logger.error(f"Facebook token exchange failed: {response.status_code} - {response.text}")
+                return None
+                
         except Exception as e:
-            return {"error": f"Token exchange error: {str(e)}"}
+            logger.error(f"Error exchanging Facebook code for tokens: {str(e)}")
+            return None
 
     def get_user_info(self, access_token):
+        """Get user information from Facebook"""
         try:
             params = {
-                "access_token": access_token,
-                "fields": "id,name,email,first_name,last_name,picture"
+                'fields': 'id,name,email,first_name,last_name',
+                'access_token': access_token
             }
-            response = requests.get(self.USER_INFO_URL, params=params)
-            response_data = response.json()
-            return response_data
-        except Exception as e:
-            return {"error": f"User info error: {str(e)}"}
-
-    def create_or_get_user(self, user_info):
-        try:
-            email = user_info.get('email')
-            if not email:
-                raise ValueError("Email not provided by Facebook")
+            response = requests.get(self.userinfo_url, params=params)
             
-            try:
-                user = CustomUser.objects.get(email=email)
-            except ObjectDoesNotExist:
-                user_data = {
-                    'email': email,
-                    'first_name': user_info.get('first_name', ''),
-                    'last_name': user_info.get('last_name', ''),
-                    'username': email,
-                    'is_active': True,
-                }
-                user = CustomUser.objects.create(**user_data)
-
-            return user
+            if response.status_code == 200:
+                return response.json()
+            else:
+                logger.error(f"Failed to get Facebook user info: {response.status_code}")
+                return None
+                
         except Exception as e:
-            raise e
+            logger.error(f"Error getting Facebook user info: {str(e)}")
+            return None
 
-    def get_jwt_token(self, user):
-        if not user.username:
-            user.username = user.email
-            user.save()
-        
+
+class ExternalMeditationService:
+    """Service class to handle external meditation API operations and file management"""
+    
+    def __init__(self):
+        self.api_endpoints = {
+            "Sleep Manifestation": "http://31.97.98.47:8000/sleep",
+            "Morning Spark": "http://31.97.98.47:8000/spark", 
+            "Calming Reset": "http://31.97.98.47:8000/calm",
+            "Dream Visualizer": "http://31.97.98.47:8000/dream"
+        }
+    
+    def call_external_api(self, plan_type, payload):
+        """Call external meditation API"""
         try:
-            refresh = RefreshToken.for_user(user)
-            access_token = str(refresh.access_token)
-            refresh_token = str(refresh)
-            return access_token, refresh_token
+            api_endpoint = self.api_endpoints.get(plan_type)
+            if not api_endpoint:
+                raise ValueError(f"Unknown plan type: {plan_type}")
+            
+            logger.info(f"Sending request to {api_endpoint} with payload: {payload}")
+            
+            response = requests.post(
+                api_endpoint,
+                json=payload,
+                headers={'Content-Type': 'application/json'},
+                timeout=30
+            )
+            
+            logger.info(f"API Response Status: {response.status_code}")
+            logger.info(f"API Response: {response.text}")
+            
+            return response
+            
+        except requests.exceptions.Timeout:
+            logger.error(f"Timeout error when calling {api_endpoint}")
+            raise
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error when calling {api_endpoint}: {str(e)}")
+            raise
         except Exception as e:
-            raise e
+            logger.error(f"Unexpected error calling external API: {str(e)}")
+            raise
+    
+    def save_meditation_file(self, user, plan_type, api_response, response_data, binary_data=None):
+        """Save the meditation file and create a meditation record"""
+        try:
+            # Get the ritual type
+            ritual_type = RitualType.objects.get(name=plan_type)
+            
+            # Create a ritual record
+            ritual = Rituals.objects.create(
+                name=f"{plan_type} Meditation",
+                description=f"Generated meditation for {plan_type}",
+                ritual_type=response_data.get('ritual_type', 'Story'),
+                tone=response_data.get('tone', 'Dreamy'),
+                voice=response_data.get('voice', 'Female'),
+                duration=str(response_data.get('length', 2))
+            )
+            
+            # Generate filename
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"external_meditation_{plan_type.lower().replace(' ', '_')}_{timestamp}.mp3"
+            
+            # Create file content
+            if binary_data:
+                # Use binary data from response
+                file_content = ContentFile(binary_data, name=filename)
+            else:
+                # Try to extract file data from API response
+                if 'file' in api_response and api_response['file']:
+                    import base64
+                    try:
+                        # Decode base64 file data if present
+                        file_data = base64.b64decode(api_response['file'])
+                        file_content = ContentFile(file_data, name=filename)
+                    except:
+                        # Fallback to placeholder
+                        file_content = self.create_placeholder_file(filename)
+                else:
+                    # Create placeholder file
+                    file_content = self.create_placeholder_file(filename)
+            
+            # Create meditation record
+            with transaction.atomic():
+                meditation = MeditationGenerate.objects.create(
+                    user=user,
+                    details=ritual,
+                    ritual_type=ritual_type,
+                    file=file_content
+                )
+            
+            logger.info(f"Saved meditation file: {filename} for user {user.id}")
+            return meditation
+            
+        except Exception as e:
+            logger.error(f"Error saving meditation file: {str(e)}")
+            # Return a minimal meditation record without file
+            ritual_type = RitualType.objects.get(name=plan_type)
+            ritual = Rituals.objects.create(
+                name=f"{plan_type} Meditation",
+                description=f"Generated meditation for {plan_type}",
+                ritual_type=response_data.get('ritual_type', 'Story'),
+                tone=response_data.get('tone', 'Dreamy'),
+                voice=response_data.get('voice', 'Female'),
+                duration=str(response_data.get('length', 2))
+            )
+            meditation = MeditationGenerate.objects.create(
+                user=user,
+                details=ritual,
+                ritual_type=ritual_type
+            )
+            return meditation
+    
+    def create_placeholder_file(self, filename):
+        """Create a placeholder file when external API doesn't return a file"""
+        try:
+            # Path to the default MP3 file
+            default_mp3_path = os.path.join(os.path.dirname(__file__), 'muzic', 'sleep_manifestation.mp3')
+            
+            with open(default_mp3_path, 'rb') as f:
+                audio_data = f.read()
+            return ContentFile(audio_data, name=filename)
+            
+        except Exception as e:
+            logger.error(f"Failed to load default placeholder MP3: {str(e)}")
+            # Fallback: return a minimal ContentFile with error message
+            content = f"Placeholder audio unavailable. Error: {str(e)}"
+            return ContentFile(content.encode('utf-8'), name=filename)
+    
+    def process_meditation_request(self, user, validated_data):
+        """Process a complete meditation request"""
+        try:
+            # Extract data
+            plan_type = validated_data['plan_type']
+            
+            # Prepare request payload
+            payload = {
+                "name": validated_data['name'],
+                "goals": validated_data['goals'],
+                "dreamlife": validated_data['dreamlife'],
+                "dream_activities": validated_data['dream_activities'],
+                "ritual_type": validated_data['ritual_type'],
+                "tone": validated_data['tone'],
+                "voice": validated_data['voice'],
+                "length": validated_data['length'],
+                "check_in": validated_data.get('check_in', '')
+            }
+            
+            # Call external API
+            response = self.call_external_api(plan_type, payload)
+            
+            # Process response
+            if response.status_code == 200:
+                try:
+                    api_response = response.json()
+                    meditation_record = self.save_meditation_file(
+                        user=user,
+                        plan_type=plan_type,
+                        api_response=api_response,
+                        response_data=validated_data
+                    )
+                    
+                    return {
+                        "success": True,
+                        "message": f"Successfully sent request to {plan_type} API",
+                        "plan_type": plan_type,
+                        "api_response": api_response,
+                        "endpoint_used": self.api_endpoints[plan_type],
+                        "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
+                        "meditation_id": meditation_record.id
+                    }
+                    
+                except json.JSONDecodeError:
+                    # Handle case where response is not JSON (might be binary file)
+                    meditation_record = self.save_meditation_file(
+                        user=user,
+                        plan_type=plan_type,
+                        api_response={"raw_response": response.text},
+                        response_data=validated_data,
+                        binary_data=response.content
+                    )
+                    
+                    return {
+                        "success": True,
+                        "message": f"Successfully sent request to {plan_type} API",
+                        "plan_type": plan_type,
+                        "api_response": {"raw_response": response.text},
+                        "endpoint_used": self.api_endpoints[plan_type],
+                        "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
+                        "meditation_id": meditation_record.id
+                    }
+            else:
+                # Even if external API fails, create a meditation record with placeholder
+                meditation_record = self.save_meditation_file(
+                    user=user,
+                    plan_type=plan_type,
+                    api_response={"error": response.text},
+                    response_data=validated_data
+                )
+                
+                return {
+                    "success": False,
+                    "error": f"External API returned status {response.status_code}",
+                    "plan_type": plan_type,
+                    "api_response": {"error": response.text},
+                    "endpoint_used": self.api_endpoints[plan_type],
+                    "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
+                    "meditation_id": meditation_record.id
+                }
+                
+        except requests.exceptions.Timeout:
+            # Create meditation record with placeholder even on timeout
+            meditation_record = self.save_meditation_file(
+                user=user,
+                plan_type=plan_type,
+                api_response={"error": "Timeout"},
+                response_data=validated_data
+            )
+            return {
+                "success": False,
+                "error": f"Timeout error when calling {plan_type} API",
+                "plan_type": plan_type,
+                "endpoint_used": self.api_endpoints[plan_type],
+                "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
+                "meditation_id": meditation_record.id
+            }
+            
+        except requests.exceptions.RequestException as e:
+            # Create meditation record with placeholder even on request error
+            meditation_record = self.save_meditation_file(
+                user=user,
+                plan_type=plan_type,
+                api_response={"error": str(e)},
+                response_data=validated_data
+            )
+            return {
+                "success": False,
+                "error": f"Request error when calling {plan_type} API: {str(e)}",
+                "plan_type": plan_type,
+                "endpoint_used": self.api_endpoints[plan_type],
+                "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
+                "meditation_id": meditation_record.id
+            }
+            
+        except Exception as e:
+            logger.error(f"Unexpected error in process_meditation_request: {str(e)}")
+            return {
+                "success": False,
+                "error": f"Unexpected error: {str(e)}"
+            }
