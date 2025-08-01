@@ -300,18 +300,30 @@ class ExternalMeditationService:
             
             # Log the transformation being applied
             logger.info(f"Transforming data for external API...")
+            logger.info(f"Input data: {json.dumps(validated_data, indent=2)}")
+            logger.info(f"Plan type: {plan_type}")
+            logger.info(f"API endpoint: {self.api_endpoints.get(plan_type)}")
+            
+            # Helper function to safely get mapped value
+            def get_mapped_value(value, mapping, default):
+                if value is None:
+                    return default
+                try:
+                    return mapping.get(str(value).lower(), default)
+                except (AttributeError, TypeError):
+                    return default
             
             # Try multiple payload formats for external API
             payload_formats = [
-                # Format 1: Map new field names to external API expected field names
+                # Format 1: Map new field names to external API expected field names with proper case
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
                     "dream_activities": validated_data['age_range'],
-                    "ritual_type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),
-                    "tone": tone_mapping.get(validated_data['tone'], 'Dreamy'),
-                    "voice": voice_mapping.get(validated_data['voice'], 'Female'),
+                    "ritual_type": get_mapped_value(validated_data['ritual_type'], ritual_type_mapping, 'Story'),
+                    "tone": get_mapped_value(validated_data['tone'], tone_mapping, 'Dreamy'),
+                    "voice": get_mapped_value(validated_data['voice'], voice_mapping, 'Female'),
                     "length": int(validated_data['duration'])
                 },
                 # Format 2: Different field name for ritual type
@@ -320,21 +332,21 @@ class ExternalMeditationService:
                     "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
                     "dream_activities": validated_data['age_range'],
-                    "type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),
-                    "tone": tone_mapping.get(validated_data['tone'], 'Dreamy'),
-                    "voice": voice_mapping.get(validated_data['voice'], 'Female'),
+                    "type": get_mapped_value(validated_data['ritual_type'], ritual_type_mapping, 'Story'),
+                    "tone": get_mapped_value(validated_data['tone'], tone_mapping, 'Dreamy'),
+                    "voice": get_mapped_value(validated_data['voice'], voice_mapping, 'Female'),
                     "length": int(validated_data['duration'])
                 },
-                # Format 3: Original values without mapping but with correct field names
+                # Format 3: Original values with proper case handling
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
                     "dream_activities": validated_data['age_range'],
-                    "ritual_type": validated_data['ritual_type'],
-                    "tone": validated_data['tone'],
-                    "voice": validated_data['voice'],
-                    "length": validated_data['duration']
+                    "ritual_type": get_mapped_value(validated_data['ritual_type'], ritual_type_mapping, 'Story'),
+                    "tone": get_mapped_value(validated_data['tone'], tone_mapping, 'Dreamy'),
+                    "voice": get_mapped_value(validated_data['voice'], voice_mapping, 'Female'),
+                    "length": int(validated_data['duration'])
                 }
             ]
             
@@ -352,11 +364,23 @@ class ExternalMeditationService:
                         break
                     else:
                         logger.warning(f"❌ Payload format {i+1} failed with status {response.status_code}")
+                        logger.warning(f"Response body: {response.text}")
                 except Exception as e:
                     logger.error(f"❌ Payload format {i+1} failed with exception: {str(e)}")
             
             if not response:
+                error_details = {
+                    "message": "All payload formats failed",
+                    "validated_data": validated_data,
+                    "plan_type": plan_type,
+                    "api_endpoint": self.api_endpoints.get(plan_type)
+                }
+                logger.error(f"All payload formats failed. Details: {json.dumps(error_details, indent=2)}")
                 raise Exception("All payload formats failed")
+            
+            # Log which format succeeded
+            if successful_format:
+                logger.info(f"🎉 Successfully used payload format {successful_format} for {plan_type} API")
             
             # Process response
             if response.status_code == 200:
