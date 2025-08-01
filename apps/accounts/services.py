@@ -154,16 +154,16 @@ class ExternalMeditationService:
             "Dream Visualizer": "http://31.97.98.47:8000/dream"
         }
     
-    def create_meditation_file(self, user, plan_type, validated_data):
+    def create_meditation_file(self, user, plan_type_id, validated_data):
         """Create meditation file and record - ALWAYS creates a file"""
         try:
-            # Get the ritual type
-            ritual_type = RitualType.objects.get(name=plan_type)
+            # Get the ritual type by ID
+            ritual_type = RitualType.objects.get(id=plan_type_id)
             
             # Create a ritual record
             ritual = Rituals.objects.create(
-                name=f"{plan_type} Meditation",
-                description=f"Generated meditation for {plan_type}",
+                name=f"{ritual_type.name} Meditation",
+                description=f"Generated meditation for {ritual_type.name}",
                 ritual_type=validated_data.get('ritual_type', 'story'),
                 tone=validated_data.get('tone', 'dreamy'),
                 voice=validated_data.get('voice', 'female'),
@@ -172,7 +172,7 @@ class ExternalMeditationService:
             
             # Generate filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"meditation_{plan_type.lower().replace(' ', '_')}_{timestamp}.mp3"
+            filename = f"meditation_{ritual_type.name.lower().replace(' ', '_')}_{timestamp}.mp3"
             
             # ALWAYS create a file - use placeholder MP3
             file_content = self.get_placeholder_audio(filename)
@@ -261,7 +261,7 @@ class ExternalMeditationService:
             logger.info(f"External API payload: {json.dumps(external_payload, indent=2)}")
             
             # ALWAYS create meditation record with file
-            meditation_record = self.create_meditation_file(user, plan_type_name, validated_data)
+            meditation_record = self.create_meditation_file(user, plan_type_id, validated_data)
             
             # Generate file URL
             file_url = self.get_file_url(meditation_record)
