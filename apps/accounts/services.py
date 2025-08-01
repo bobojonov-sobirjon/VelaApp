@@ -167,7 +167,8 @@ class ExternalMeditationService:
             logger.info(f"Request headers: {headers}")
             
             # Use configured timeout or default to 8 seconds
-            timeout = getattr(settings, 'MEDITATION_API_CONFIG', {}).get('TIMEOUT', 8)
+            meditation_config = getattr(settings, 'MEDITATION_API_CONFIG', {})
+            timeout = meditation_config.get('TIMEOUT', 8)
             response = requests.post(
                 api_endpoint,
                 json=payload,
@@ -182,7 +183,8 @@ class ExternalMeditationService:
             return response
             
         except requests.exceptions.Timeout:
-            timeout = getattr(settings, 'MEDITATION_API_CONFIG', {}).get('TIMEOUT', 8)
+            meditation_config = getattr(settings, 'MEDITATION_API_CONFIG', {})
+            timeout = meditation_config.get('TIMEOUT', 8)
             logger.error(f"Timeout error when calling {api_endpoint} ({timeout}s timeout)")
             raise
         except requests.exceptions.RequestException as e:
@@ -285,7 +287,8 @@ class ExternalMeditationService:
             plan_type = validated_data['plan_type']
             
             # Check if external API is enabled (can be disabled for testing or when API is down)
-            external_api_enabled = getattr(settings, 'MEDITATION_API_CONFIG', {}).get('ENABLED', True)
+            meditation_config = getattr(settings, 'MEDITATION_API_CONFIG', {})
+            external_api_enabled = meditation_config.get('ENABLED', True)
             
             # Log the transformation being applied
             logger.info(f"Transforming data for external API...")
@@ -526,7 +529,8 @@ class ExternalMeditationService:
     def _get_file_url(self, meditation_record):
         """Helper method to generate file URL with proper error handling"""
         try:
-            base_url = getattr(settings, 'MEDITATION_API_CONFIG', {}).get('BASE_URL', '')
+            meditation_config = getattr(settings, 'MEDITATION_API_CONFIG', {})
+            base_url = meditation_config.get('BASE_URL', '')
             if base_url and meditation_record.file:
                 return f"{base_url}{meditation_record.file.url}"
             elif meditation_record.file:
