@@ -287,17 +287,31 @@ class ExternalMeditationService:
             logger.info(f"Plan type: {plan_type}")
             logger.info(f"API endpoint: {self.api_endpoints.get(plan_type)}")
             
+            # Helper function to map values to external API format
+            def map_to_external_format(value, field_type):
+                if field_type == 'ritual_type':
+                    mapping = {'story': 'Story', 'guided_meditations': 'Guided'}
+                    return mapping.get(value, 'Story')
+                elif field_type == 'tone':
+                    mapping = {'dreamy': 'Dreamy', 'asmr': 'ASMR'}
+                    return mapping.get(value, 'Dreamy')
+                elif field_type == 'voice':
+                    mapping = {'male': 'Male', 'female': 'Female'}
+                    return mapping.get(value, 'Female')
+                else:
+                    return value
+            
             # Try multiple payload formats for external API
             payload_formats = [
-                # Format 1: Direct mapping with external API field names
+                # Format 1: Direct mapping with external API field names and proper capitalization
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
                     "dream_activities": validated_data['age_range'],
-                    "ritual_type": validated_data['ritual_type'],
-                    "tone": validated_data['tone'],
-                    "voice": validated_data['voice'],
+                    "ritual_type": map_to_external_format(validated_data['ritual_type'], 'ritual_type'),
+                    "tone": map_to_external_format(validated_data['tone'], 'tone'),
+                    "voice": map_to_external_format(validated_data['voice'], 'voice'),
                     "length": int(validated_data['duration'])
                 },
                 # Format 2: Alternative field name for ritual type
@@ -306,9 +320,9 @@ class ExternalMeditationService:
                     "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
                     "dream_activities": validated_data['age_range'],
-                    "type": validated_data['ritual_type'],
-                    "tone": validated_data['tone'],
-                    "voice": validated_data['voice'],
+                    "type": map_to_external_format(validated_data['ritual_type'], 'ritual_type'),
+                    "tone": map_to_external_format(validated_data['tone'], 'tone'),
+                    "voice": map_to_external_format(validated_data['voice'], 'voice'),
                     "length": int(validated_data['duration'])
                 },
                 # Format 3: With check_in field using happiness data
@@ -317,9 +331,9 @@ class ExternalMeditationService:
                     "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
                     "dream_activities": validated_data['age_range'],
-                    "ritual_type": validated_data['ritual_type'],
-                    "tone": validated_data['tone'],
-                    "voice": validated_data['voice'],
+                    "ritual_type": map_to_external_format(validated_data['ritual_type'], 'ritual_type'),
+                    "tone": map_to_external_format(validated_data['tone'], 'tone'),
+                    "voice": map_to_external_format(validated_data['voice'], 'voice'),
                     "length": int(validated_data['duration']),
                     "check_in": validated_data.get('happiness', '')
                 },
@@ -330,9 +344,9 @@ class ExternalMeditationService:
                     "goals": validated_data['goals'],
                     "age_range": validated_data['age_range'],
                     "happiness": validated_data.get('happiness', ''),
-                    "ritual_type": validated_data['ritual_type'],
-                    "tone": validated_data['tone'],
-                    "voice": validated_data['voice'],
+                    "ritual_type": map_to_external_format(validated_data['ritual_type'], 'ritual_type'),
+                    "tone": map_to_external_format(validated_data['tone'], 'tone'),
+                    "voice": map_to_external_format(validated_data['voice'], 'voice'),
                     "duration": validated_data['duration']
                 }
             ]
