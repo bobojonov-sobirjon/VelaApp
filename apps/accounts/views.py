@@ -1049,4 +1049,44 @@ class ExternalMeditationAPIView(APIView):
                 "success": False,
                 "error": f"Unexpected error: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class MeditationGenerateDetailView(APIView):
+    permission_classes = [IsAuthenticated]
     
+    @swagger_auto_schema(
+        operation_summary="Get meditation by ID",
+        operation_description="Retrieve a specific meditation record by its ID. Only returns meditations belonging to the authenticated user.",
+        tags=['Meditation'],
+        responses={
+            200: MeditationGenerateListSerializer(),
+            404: "Meditation not found",
+            401: "Unauthorized"
+        }
+    )
+    def get(self, request, meditation_id):
+        """
+        Get a specific meditation record by ID
+        """
+        try:
+            # Get the meditation record, ensuring it belongs to the authenticated user
+            meditation = get_object_or_404(
+                MeditationGenerate, 
+                id=meditation_id, 
+                user=request.user
+            )
+            
+            # Serialize the meditation record
+            serializer = MeditationGenerateListSerializer(meditation)
+            
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except MeditationGenerate.DoesNotExist:
+            return Response({
+                "error": "Meditation not found"
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error retrieving meditation {meditation_id}: {str(e)}")
+            return Response({
+                "error": "An error occurred while retrieving the meditation"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
