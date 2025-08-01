@@ -165,13 +165,23 @@ AUTHENTICATION_BACKENDS = (
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'vela',
+        'USER': 'postgres',
+        "PASSWORD": "0576",
+        "HOST": "localhost",
+        "PORT": 5432,
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 
 
 SITE_ID = 1
