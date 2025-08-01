@@ -115,7 +115,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "/var/www/media/")
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
@@ -304,7 +304,7 @@ MEDITATION_API_CONFIG = {
 DJANGO_SERVER_URL = os.environ.get('DJANGO_SERVER_URL', 'http://31.97.98.47:9000')
 
 # External meditation API settings
-EXTERNAL_MEDITATION_API_ENABLED = os.environ.get('EXTERNAL_MEDITATION_API_ENABLED', 'True').lower() == 'true'
+EXTERNAL_MEDITATION_API_ENABLED = os.environ.get('EXTERNAL_MEDITATION_API_ENABLED', 'False').lower() == 'true'
 
 # Logging configuration
 LOGGING = {
