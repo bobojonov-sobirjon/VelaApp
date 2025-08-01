@@ -627,7 +627,7 @@ class ExternalMeditationSerializer(serializers.Serializer):
         """
         try:
             ritual_type = RitualType.objects.get(id=value)
-            return ritual_type.name
+            return ritual_type.name  # Return the name, not the ID
         except RitualType.DoesNotExist:
             raise serializers.ValidationError(
                 f"Plan type with ID {value} does not exist."

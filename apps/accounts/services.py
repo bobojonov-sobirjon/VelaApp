@@ -199,10 +199,10 @@ class ExternalMeditationService:
             ritual = Rituals.objects.create(
                 name=f"{plan_type} Meditation",
                 description=f"Generated meditation for {plan_type}",
-                ritual_type=response_data.get('ritual_type', 'Story'),
-                tone=response_data.get('tone', 'Dreamy'),
-                voice=response_data.get('voice', 'Female'),
-                duration=str(response_data.get('duration', 2))
+                ritual_type=response_data.get('ritual_type', 'story'),
+                tone=response_data.get('tone', 'dreamy'),
+                voice=response_data.get('voice', 'female'),
+                duration=str(response_data.get('duration', '2'))
             )
             
             # Generate filename
@@ -247,10 +247,10 @@ class ExternalMeditationService:
             ritual = Rituals.objects.create(
                 name=f"{plan_type} Meditation",
                 description=f"Generated meditation for {plan_type}",
-                ritual_type=response_data.get('ritual_type', 'Story'),
-                tone=response_data.get('tone', 'Dreamy'),
-                voice=response_data.get('voice', 'Female'),
-                duration=str(response_data.get('duration', 2))
+                ritual_type=response_data.get('ritual_type', 'story'),
+                tone=response_data.get('tone', 'dreamy'),
+                voice=response_data.get('voice', 'female'),
+                duration=str(response_data.get('duration', '2'))
             )
             meditation = MeditationGenerate.objects.create(
                 user=user,
@@ -278,25 +278,8 @@ class ExternalMeditationService:
     def process_meditation_request(self, user, validated_data):
         """Process a complete meditation request"""
         try:
-            # Extract data
+            # Extract data - plan_type is now the ritual type name from serializer validation
             plan_type = validated_data['plan_type']
-            
-            # Transform data for external API format
-            # External API expects different field names and values
-            ritual_type_mapping = {
-                'story': 'Story',
-                'guided_meditations': 'Guided'
-            }
-            
-            tone_mapping = {
-                'dreamy': 'Dreamy',
-                'asmr': 'ASMR'
-            }
-            
-            voice_mapping = {
-                'male': 'Male',
-                'female': 'Female'
-            }
             
             # Log the transformation being applied
             logger.info(f"Transforming data for external API...")
@@ -304,49 +287,53 @@ class ExternalMeditationService:
             logger.info(f"Plan type: {plan_type}")
             logger.info(f"API endpoint: {self.api_endpoints.get(plan_type)}")
             
-            # Helper function to safely get mapped value
-            def get_mapped_value(value, mapping, default):
-                if value is None:
-                    return default
-                try:
-                    return mapping.get(str(value).lower(), default)
-                except (AttributeError, TypeError):
-                    return default
-            
             # Try multiple payload formats for external API
             payload_formats = [
-                # Format 1: Map new field names to external API expected field names with proper case
+                # Format 1: Direct mapping with external API field names
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
                     "dream_activities": validated_data['age_range'],
-                    "ritual_type": get_mapped_value(validated_data['ritual_type'], ritual_type_mapping, 'Story'),
-                    "tone": get_mapped_value(validated_data['tone'], tone_mapping, 'Dreamy'),
-                    "voice": get_mapped_value(validated_data['voice'], voice_mapping, 'Female'),
+                    "ritual_type": validated_data['ritual_type'],
+                    "tone": validated_data['tone'],
+                    "voice": validated_data['voice'],
                     "length": int(validated_data['duration'])
                 },
-                # Format 2: Different field name for ritual type
+                # Format 2: Alternative field name for ritual type
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
                     "dream_activities": validated_data['age_range'],
-                    "type": get_mapped_value(validated_data['ritual_type'], ritual_type_mapping, 'Story'),
-                    "tone": get_mapped_value(validated_data['tone'], tone_mapping, 'Dreamy'),
-                    "voice": get_mapped_value(validated_data['voice'], voice_mapping, 'Female'),
+                    "type": validated_data['ritual_type'],
+                    "tone": validated_data['tone'],
+                    "voice": validated_data['voice'],
                     "length": int(validated_data['duration'])
                 },
-                # Format 3: Original values with proper case handling
+                # Format 3: With check_in field using happiness data
                 {
                     "name": validated_data['gender'],
                     "dreamlife": validated_data['dream'],
                     "goals": validated_data['goals'],
                     "dream_activities": validated_data['age_range'],
-                    "ritual_type": get_mapped_value(validated_data['ritual_type'], ritual_type_mapping, 'Story'),
-                    "tone": get_mapped_value(validated_data['tone'], tone_mapping, 'Dreamy'),
-                    "voice": get_mapped_value(validated_data['voice'], voice_mapping, 'Female'),
-                    "length": int(validated_data['duration'])
+                    "ritual_type": validated_data['ritual_type'],
+                    "tone": validated_data['tone'],
+                    "voice": validated_data['voice'],
+                    "length": int(validated_data['duration']),
+                    "check_in": validated_data.get('happiness', '')
+                },
+                # Format 4: Using original field names as they might be expected
+                {
+                    "gender": validated_data['gender'],
+                    "dream": validated_data['dream'],
+                    "goals": validated_data['goals'],
+                    "age_range": validated_data['age_range'],
+                    "happiness": validated_data.get('happiness', ''),
+                    "ritual_type": validated_data['ritual_type'],
+                    "tone": validated_data['tone'],
+                    "voice": validated_data['voice'],
+                    "duration": validated_data['duration']
                 }
             ]
             
@@ -398,7 +385,7 @@ class ExternalMeditationService:
                         "message": f"Successfully sent request to {plan_type} API",
                         "plan_type": plan_type,
                         "endpoint_used": self.api_endpoints[plan_type],
-                        "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
+                        "file_url": self._get_file_url(meditation_record) if meditation_record.file else None,
                         "meditation_id": meditation_record.id
                     }
                     
@@ -417,7 +404,7 @@ class ExternalMeditationService:
                         "message": f"Successfully sent request to {plan_type} API",
                         "plan_type": plan_type,
                         "endpoint_used": self.api_endpoints[plan_type],
-                        "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
+                        "file_url": self._get_file_url(meditation_record) if meditation_record.file else None,
                         "meditation_id": meditation_record.id
                     }
             else:
@@ -434,7 +421,7 @@ class ExternalMeditationService:
                     "error": f"External API returned status {response.status_code}",
                     "plan_type": plan_type,
                     "endpoint_used": self.api_endpoints[plan_type],
-                    "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
+                    "file_url": self._get_file_url(meditation_record) if meditation_record.file else None,
                     "meditation_id": meditation_record.id
                 }
                 
@@ -451,7 +438,7 @@ class ExternalMeditationService:
                 "error": f"Timeout error when calling {plan_type} API",
                 "plan_type": plan_type,
                 "endpoint_used": self.api_endpoints[plan_type],
-                "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
+                "file_url": self._get_file_url(meditation_record) if meditation_record.file else None,
                 "meditation_id": meditation_record.id
             }
             
@@ -468,7 +455,7 @@ class ExternalMeditationService:
                 "error": f"Request error when calling {plan_type} API: {str(e)}",
                 "plan_type": plan_type,
                 "endpoint_used": self.api_endpoints[plan_type],
-                "file_url": f"{settings.MEDITATION_API_CONFIG['BASE_URL']}{meditation_record.file.url}" if meditation_record.file else None,
+                "file_url": self._get_file_url(meditation_record) if meditation_record.file else None,
                 "meditation_id": meditation_record.id
             }
             
@@ -478,3 +465,17 @@ class ExternalMeditationService:
                 "success": False,
                 "error": f"Unexpected error: {str(e)}"
             }
+    
+    def _get_file_url(self, meditation_record):
+        """Helper method to generate file URL with proper error handling"""
+        try:
+            base_url = getattr(settings, 'MEDITATION_API_CONFIG', {}).get('BASE_URL', '')
+            if base_url and meditation_record.file:
+                return f"{base_url}{meditation_record.file.url}"
+            elif meditation_record.file:
+                return meditation_record.file.url
+            else:
+                return None
+        except Exception as e:
+            logger.error(f"Error generating file URL: {str(e)}")
+            return None
