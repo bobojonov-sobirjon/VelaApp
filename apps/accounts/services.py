@@ -161,7 +161,9 @@ class ExternalMeditationService:
             if not api_endpoint:
                 raise ValueError(f"Unknown plan type: {plan_type}")
             
-            logger.info(f"Sending request to {api_endpoint} with payload: {payload}")
+            logger.info(f"Sending request to {api_endpoint}")
+            logger.info(f"Request payload: {json.dumps(payload, indent=2)}")
+            logger.info(f"Request headers: {headers}")
             
             response = requests.post(
                 api_endpoint,
@@ -170,8 +172,9 @@ class ExternalMeditationService:
                 timeout=30
             )
             
-            logger.info(f"API Response Status: {response.status_code}")
-            logger.info(f"API Response: {response.text}")
+            logger.info(f"External API Response Status: {response.status_code}")
+            logger.info(f"External API Response Headers: {dict(response.headers)}")
+            logger.info(f"External API Response Body: {response.text}")
             
             return response
             
@@ -294,24 +297,68 @@ class ExternalMeditationService:
                 'female': 'Female'
             }
             
-            # Prepare request payload for external API
-            payload = {
-                "name": validated_data['name'],
-                "goals": validated_data['goals'],
-                "dreamlife": validated_data['dreamlife'],
-                "dream_activities": validated_data['dream_activities'],
-                "type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),  # External API expects 'type'
-                "tone": tone_mapping.get(validated_data['tone'], 'Dreamy'),
-                "voice": voice_mapping.get(validated_data['voice'], 'Female'),
-                "length": int(validated_data['length']),  # Convert to integer for external API
-                "check_in": validated_data.get('check_in', '')
-            }
+            # Log the transformation being applied
+            logger.info(f"Transforming data for external API...")
             
-            # Log the payload being sent to external API
-            logger.info(f"Transformed payload for external API: {payload}")
+            # Try multiple payload formats for external API
+            payload_formats = [
+                # Format 1: Original field names with mapped values
+                {
+                    "name": validated_data['name'],
+                    "goals": validated_data['goals'],
+                    "dreamlife": validated_data['dreamlife'],
+                    "dream_activities": validated_data['dream_activities'],
+                    "ritual_type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),
+                    "tone": tone_mapping.get(validated_data['tone'], 'Dreamy'),
+                    "voice": voice_mapping.get(validated_data['voice'], 'Female'),
+                    "length": int(validated_data['length']),
+                    "check_in": validated_data.get('check_in', '')
+                },
+                # Format 2: Different field name for ritual type
+                {
+                    "name": validated_data['name'],
+                    "goals": validated_data['goals'],
+                    "dreamlife": validated_data['dreamlife'],
+                    "dream_activities": validated_data['dream_activities'],
+                    "type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),
+                    "tone": tone_mapping.get(validated_data['tone'], 'Dreamy'),
+                    "voice": voice_mapping.get(validated_data['voice'], 'Female'),
+                    "length": int(validated_data['length']),
+                    "check_in": validated_data.get('check_in', '')
+                },
+                # Format 3: Original values without mapping
+                {
+                    "name": validated_data['name'],
+                    "goals": validated_data['goals'],
+                    "dreamlife": validated_data['dreamlife'],
+                    "dream_activities": validated_data['dream_activities'],
+                    "ritual_type": validated_data['ritual_type'],
+                    "tone": validated_data['tone'],
+                    "voice": validated_data['voice'],
+                    "length": validated_data['length'],
+                    "check_in": validated_data.get('check_in', '')
+                }
+            ]
             
-            # Call external API
-            response = self.call_external_api(plan_type, payload)
+            response = None
+            successful_format = None
+            
+            for i, payload_format in enumerate(payload_formats):
+                logger.info(f"Trying payload format {i+1}: {json.dumps(payload_format, indent=2)}")
+                
+                try:
+                    response = self.call_external_api(plan_type, payload_format)
+                    if response.status_code == 200:
+                        successful_format = i+1
+                        logger.info(f"✅ Payload format {i+1} succeeded!")
+                        break
+                    else:
+                        logger.warning(f"❌ Payload format {i+1} failed with status {response.status_code}")
+                except Exception as e:
+                    logger.error(f"❌ Payload format {i+1} failed with exception: {str(e)}")
+            
+            if not response:
+                raise Exception("All payload formats failed")
             
             # Process response
             if response.status_code == 200:
