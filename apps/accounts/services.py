@@ -166,14 +166,12 @@ class ExternalMeditationService:
             logger.info(f"Request payload: {json.dumps(payload, indent=2)}")
             logger.info(f"Request headers: {headers}")
             
-            # Use configured timeout or default to 8 seconds
-            meditation_config = getattr(settings, 'MEDITATION_API_CONFIG', {})
-            timeout = meditation_config.get('TIMEOUT', 8)
+            # Use shorter timeout to avoid long waits
             response = requests.post(
                 api_endpoint,
                 json=payload,
                 headers=headers,
-                timeout=timeout
+                timeout=5  # Reduced timeout to 5 seconds
             )
             
             logger.info(f"External API Response Status: {response.status_code}")
@@ -183,9 +181,7 @@ class ExternalMeditationService:
             return response
             
         except requests.exceptions.Timeout:
-            meditation_config = getattr(settings, 'MEDITATION_API_CONFIG', {})
-            timeout = meditation_config.get('TIMEOUT', 8)
-            logger.error(f"Timeout error when calling {api_endpoint} ({timeout}s timeout)")
+            logger.error(f"Timeout error when calling {api_endpoint} (5s timeout)")
             raise
         except requests.exceptions.RequestException as e:
             logger.error(f"Request error when calling {api_endpoint}: {str(e)}")
@@ -287,8 +283,7 @@ class ExternalMeditationService:
             plan_type = validated_data['plan_type']
             
             # Check if external API is enabled (can be disabled for testing or when API is down)
-            meditation_config = getattr(settings, 'MEDITATION_API_CONFIG', {})
-            external_api_enabled = meditation_config.get('ENABLED', True)
+            external_api_enabled = getattr(settings, 'EXTERNAL_MEDITATION_API_ENABLED', True)
             
             # Log the transformation being applied
             logger.info(f"Transforming data for external API...")
@@ -330,81 +325,26 @@ class ExternalMeditationService:
                 else:
                     return value
             
-            # Try multiple payload formats for external API based on error responses
-            payload_formats = [
-                # Format 1: Based on error response - includes all required fields
-                {
-                    "name": validated_data['gender'],
-                    "dreamlife": validated_data['dream'],
-                    "goals": validated_data['goals'],
-                    "dream_activities": validated_data['age_range'],
-                    "ritual_type": map_to_external_format(validated_data['ritual_type'], 'ritual_type'),
-                    "tone": map_to_external_format(validated_data['tone'], 'tone'),
-                    "voice": map_to_external_format(validated_data['voice'], 'voice'),
-                    "length": int(validated_data['duration'])
-                },
-                # Format 2: Alternative with type instead of ritual_type
-                {
-                    "name": validated_data['gender'],
-                    "dreamlife": validated_data['dream'],
-                    "goals": validated_data['goals'],
-                    "dream_activities": validated_data['age_range'],
-                    "type": map_to_external_format(validated_data['ritual_type'], 'ritual_type'),
-                    "tone": map_to_external_format(validated_data['tone'], 'tone'),
-                    "voice": map_to_external_format(validated_data['voice'], 'voice'),
-                    "length": int(validated_data['duration'])
-                },
-                # Format 3: Minimal required fields based on error response
-                {
-                    "name": validated_data['gender'],
-                    "dreamlife": validated_data['dream'],
-                    "goals": validated_data['goals'],
-                    "dream_activities": validated_data['age_range'],
-                    "ritual_type": map_to_external_format(validated_data['ritual_type'], 'ritual_type'),
-                    "length": int(validated_data['duration'])
-                },
-                # Format 4: Using original field names with proper mapping
-                {
-                    "name": validated_data['gender'],
-                    "dreamlife": validated_data['dream'],
-                    "goals": validated_data['goals'],
-                    "dream_activities": validated_data['age_range'],
-                    "ritual_type": map_to_external_format(validated_data['ritual_type'], 'ritual_type'),
-                    "tone": map_to_external_format(validated_data['tone'], 'tone'),
-                    "voice": map_to_external_format(validated_data['voice'], 'voice'),
-                    "length": int(validated_data['duration']),
-                    "check_in": validated_data.get('happiness', '')
-                }
-            ]
+            # Use the correct payload format as specified
+            payload = {
+                "name": validated_data['gender'],
+                "goals": validated_data['goals'],
+                "dreamlife": validated_data['dream'],
+                "dream_activities": validated_data['happiness'],
+                "ritual_type": map_to_external_format(validated_data['ritual_type'], 'ritual_type'),
+                "tone": map_to_external_format(validated_data['tone'], 'tone'),
+                "voice": map_to_external_format(validated_data['voice'], 'voice'),
+                "length": int(validated_data['duration']),
+                "check_in": "string"
+            }
             
-            response = None
-            successful_format = None
+            logger.info(f"Using payload: {json.dumps(payload, indent=2)}")
             
-            for i, payload_format in enumerate(payload_formats):
-                logger.info(f"Trying payload format {i+1}: {json.dumps(payload_format, indent=2)}")
-                
-                try:
-                    response = self.call_external_api(plan_type, payload_format)
-                    if response.status_code == 200:
-                        successful_format = i+1
-                        logger.info(f"✅ Payload format {i+1} succeeded!")
-                        break
-                    else:
-                        logger.warning(f"❌ Payload format {i+1} failed with status {response.status_code}")
-                        logger.warning(f"Response body: {response.text}")
-                except Exception as e:
-                    logger.error(f"❌ Payload format {i+1} failed with exception: {str(e)}")
-            
-            if not response:
-                error_details = {
-                    "message": "All payload formats failed",
-                    "validated_data": validated_data,
-                    "plan_type": plan_type,
-                    "api_endpoint": self.api_endpoints.get(plan_type)
-                }
-                logger.error(f"All payload formats failed. Details: {json.dumps(error_details, indent=2)}")
-                
-                # Create meditation record with placeholder even when external API fails
+            try:
+                response = self.call_external_api(plan_type, payload)
+            except Exception as e:
+                logger.error(f"External API call failed: {str(e)}")
+                # Create meditation record with placeholder when external API fails
                 meditation_record = self.save_meditation_file(
                     user=user,
                     plan_type=plan_type,
@@ -421,10 +361,6 @@ class ExternalMeditationService:
                     "meditation_id": meditation_record.id,
                     "fallback_used": True
                 }
-            
-            # Log which format succeeded
-            if successful_format:
-                logger.info(f"🎉 Successfully used payload format {successful_format} for {plan_type} API")
             
             # Process response
             if response.status_code == 200:
@@ -529,14 +465,20 @@ class ExternalMeditationService:
     def _get_file_url(self, meditation_record):
         """Helper method to generate file URL with proper error handling"""
         try:
-            meditation_config = getattr(settings, 'MEDITATION_API_CONFIG', {})
-            base_url = meditation_config.get('BASE_URL', '')
-            if base_url and meditation_record.file:
-                return f"{base_url}{meditation_record.file.url}"
-            elif meditation_record.file:
-                return meditation_record.file.url
-            else:
+            if not meditation_record.file:
                 return None
+                
+            # Use Django server URL for file serving
+            django_server_url = getattr(settings, 'DJANGO_SERVER_URL', 'http://31.97.98.47:9000')
+            
+            # Remove trailing slash if present
+            django_server_url = django_server_url.rstrip('/')
+            file_url = meditation_record.file.url
+            # Remove leading slash if present
+            file_url = file_url.lstrip('/')
+            
+            return f"{django_server_url}/{file_url}"
+                
         except Exception as e:
             logger.error(f"Error generating file URL: {str(e)}")
             return None
