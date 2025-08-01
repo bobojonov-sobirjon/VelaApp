@@ -279,7 +279,7 @@ FACEBOOK_REDIRECT_URI=os.getenv("FACEBOOK_REDIRECT_URI", "")
 
 # External API Configuration
 MEDITATION_API_CONFIG = {
-    'BASE_URL': os.environ.get('MEDITATION_API_BASE_URL', 'http://31.97.98.47:8000'),
+    'BASE_URL': os.environ.get('MEDITATION_API_BASE_URL', 'http://31.97.98.47:9000'),
     'TIMEOUT': int(os.environ.get('MEDITATION_API_TIMEOUT', 10)),
     'ENABLED': os.environ.get('MEDITATION_API_ENABLED', 'True').lower() == 'true',
     'ENDPOINTS': {
