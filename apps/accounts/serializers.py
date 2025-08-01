@@ -603,18 +603,19 @@ class ExternalMeditationSerializer(serializers.Serializer):
         help_text="Audio length in minutes"
     )
     check_in = serializers.CharField(required=False, allow_blank=True, default="", help_text="Check-in text")
-    plan_type = serializers.CharField(required=True, help_text="Plan type to determine API endpoint")
+    plan_type = serializers.IntegerField(required=True, help_text="Plan type ID to determine API endpoint")
     
     def validate_plan_type(self, value):
         """
-        Validate that the plan type is one of the supported types
+        Validate that the plan type ID exists in RitualType model
         """
-        valid_plan_types = ["Sleep Manifestation", "Morning Spark", "Calming Reset", "Dream Visualizer"]
-        if value not in valid_plan_types:
+        try:
+            ritual_type = RitualType.objects.get(id=value)
+            return ritual_type.name
+        except RitualType.DoesNotExist:
             raise serializers.ValidationError(
-                f"Plan type must be one of: {', '.join(valid_plan_types)}"
+                f"Plan type with ID {value} does not exist."
             )
-        return value
     
     def validate_length(self, value):
         """
