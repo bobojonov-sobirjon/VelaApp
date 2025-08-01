@@ -580,34 +580,46 @@ class ExternalMeditationSerializer(serializers.Serializer):
     The plan_type field accepts a RitualType ID and validates that it exists.
     The validation method returns the ritual type name which is used to determine
     the appropriate external API endpoint.
+    
+    For choice fields, send the key instead of the value:
+    - ritual_type: 'story' (not 'Story')
+    - tone: 'dreamy' (not 'Dreamy') 
+    - voice: 'female' (not 'Female')
+    - length: '2' (not 2)
     """
-    name = serializers.CharField(max_length=100, required=True, help_text="User's name")
+    
+    # Choice mappings for converting keys to values
+    RITUAL_TYPE_CHOICES = {
+        'guided_meditations': 'guided_meditations',
+        'story': 'story'
+    }
+    
+    TONE_CHOICES = {
+        'dreamy': 'dreamy',
+        'asmr': 'asmr'
+    }
+    
+    VOICE_CHOICES = {
+        'male': 'male',
+        'female': 'female'
+    }
+    
+    LENGTH_CHOICES = {
+        '2': '2',
+        '5': '5', 
+        '10': '10'
+    }
+    
+    name = serializers.CharField(required=True, help_text="User's name")
     goals = serializers.CharField(required=True, help_text="User's goals")
     dreamlife = serializers.CharField(required=True, help_text="User's dream life")
     dream_activities = serializers.CharField(required=True, help_text="User's dream activities")
-    ritual_type = serializers.ChoiceField(
-        choices=[("Story", "Story"), ("Guided", "Guided")], 
-        default="Story",
-        help_text="Type of ritual"
-    )
-    tone = serializers.ChoiceField(
-        choices=[("Dreamy", "Dreamy"), ("ASMR", "ASMR")], 
-        default="Dreamy",
-        help_text="Audio tone"
-    )
-    voice = serializers.ChoiceField(
-        choices=[("Female", "Female"), ("Male", "Male")], 
-        default="Female",
-        help_text="Voice type"
-    )
-    length = serializers.IntegerField(
-        min_value=2, 
-        max_value=10, 
-        default=2,
-        help_text="Audio length in minutes"
-    )
-    check_in = serializers.CharField(required=False, allow_blank=True, default="", help_text="Check-in text")
     plan_type = serializers.IntegerField(required=True, help_text="Plan type ID to determine API endpoint")
+    ritual_type = serializers.CharField(required=True, help_text="Ritual type key (e.g., 'story', 'guided_meditations')")
+    tone = serializers.CharField(required=True, help_text="Tone key (e.g., 'dreamy', 'asmr')")
+    voice = serializers.CharField(required=True, help_text="Voice key (e.g., 'male', 'female')")
+    length = serializers.CharField(required=True, help_text="Length key (e.g., '2', '5', '10')")
+    check_in = serializers.CharField(required=False, allow_blank=True, help_text="Optional check-in message")
     
     def validate_plan_type(self, value):
         """
@@ -621,12 +633,44 @@ class ExternalMeditationSerializer(serializers.Serializer):
                 f"Plan type with ID {value} does not exist."
             )
     
+    def validate_ritual_type(self, value):
+        """
+        Validate ritual_type key and convert to value
+        """
+        if value not in self.RITUAL_TYPE_CHOICES:
+            raise serializers.ValidationError(
+                f"Invalid ritual_type key: {value}. Valid keys are: {list(self.RITUAL_TYPE_CHOICES.keys())}"
+            )
+        return self.RITUAL_TYPE_CHOICES[value]
+    
+    def validate_tone(self, value):
+        """
+        Validate tone key and convert to value
+        """
+        if value not in self.TONE_CHOICES:
+            raise serializers.ValidationError(
+                f"Invalid tone key: {value}. Valid keys are: {list(self.TONE_CHOICES.keys())}"
+            )
+        return self.TONE_CHOICES[value]
+    
+    def validate_voice(self, value):
+        """
+        Validate voice key and convert to value
+        """
+        if value not in self.VOICE_CHOICES:
+            raise serializers.ValidationError(
+                f"Invalid voice key: {value}. Valid keys are: {list(self.VOICE_CHOICES.keys())}"
+            )
+        return self.VOICE_CHOICES[value]
+    
     def validate_length(self, value):
         """
-        Validate that length is one of the allowed values
+        Validate length key and convert to value
         """
-        if value not in [2, 5, 10]:
-            raise serializers.ValidationError("Length must be 2, 5, or 10 minutes")
-        return value
+        if value not in self.LENGTH_CHOICES:
+            raise serializers.ValidationError(
+                f"Invalid length key: {value}. Valid keys are: {list(self.LENGTH_CHOICES.keys())}"
+            )
+        return self.LENGTH_CHOICES[value]
 
 
