@@ -15,7 +15,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
 from apps.accounts.services import ExternalMeditationService
-from apps.accounts.models import CustomUser
+from apps.accounts.models import CustomUser, RitualType
 
 def test_external_meditation_api():
     """Test the external meditation API integration"""

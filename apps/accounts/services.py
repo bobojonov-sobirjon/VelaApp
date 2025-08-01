@@ -6,6 +6,7 @@ from django.core.files.base import ContentFile
 from django.db import transaction
 from datetime import datetime
 import os
+from django.utils import timezone
 
 from apps.accounts.models import RitualType, Rituals, MeditationGenerate
 
@@ -144,216 +145,293 @@ class FacebookLoginService:
 
 
 class ExternalMeditationService:
-    """Service class to handle external meditation API operations and file management"""
+    """
+    Service for handling external meditation API requests
+    
+    Maps plan_type IDs to external API endpoints and transforms request data
+    to match the external API format. Saves returned MP3 files to MeditationGenerate model.
+    """
     
     def __init__(self):
+        # External API endpoints mapping based on ritual type names
         self.api_endpoints = {
             "Sleep Manifestation": "http://31.97.98.47:8000/sleep",
             "Morning Spark": "http://31.97.98.47:8000/spark", 
             "Calming Reset": "http://31.97.98.47:8000/calm",
             "Dream Visualizer": "http://31.97.98.47:8000/dream"
         }
+        
+        # Field mappings from our format to external API format
+        self.field_mappings = {
+            'duration': 'length',
+            'ritual_type': 'ritual_type',
+            'voice': 'voice',
+            'tone': 'tone',
+            'goals': 'goals',
+            'dream': 'dreamlife',
+            'happiness': 'dream_activities',
+            'age_range': 'name',  # Using age_range as name for external API
+            'gender': 'check_in'  # Using gender as check_in for external API
+        }
     
-    def create_meditation_file(self, user, validated_data):
-        """Create meditation file and record - ALWAYS creates a file"""
+    def process_meditation_request(self, user, validated_data):
+        """
+        Process meditation request and send to appropriate external API
+        
+        Args:
+            user: The authenticated user
+            validated_data: Validated data from ExternalMeditationSerializer
+            
+        Returns:
+            dict: Response with success status, message, and file details
+        """
         try:
-            # Get the ritual type by ID
-            plan_type_id = validated_data['plan_type']
+            # Get plan type from validated data
+            plan_type_id = validated_data.get('plan_type')
+            
+            # Get the ritual type name from the plan_type ID
             try:
                 ritual_type = RitualType.objects.get(id=plan_type_id)
+                ritual_type_name = ritual_type.name
             except RitualType.DoesNotExist:
-                # Create a default ritual type if it doesn't exist
-                ritual_type = None
-                
-                
-            # Create a ritual record - ritual_type is a CharField with choices
-            ritual = Rituals.objects.create(
-                name=f"{ritual_type.name} Meditation",
-                description=f"Generated meditation for {ritual_type.name}",
-                ritual_type=validated_data.get('ritual_type', 'story'),  # This is correct - CharField
-                tone=validated_data.get('tone', 'dreamy'),
-                voice=validated_data.get('voice', 'female'),
-                duration=str(validated_data.get('duration', '2'))
+                return {
+                    "success": False,
+                    "message": f"Plan type with ID {plan_type_id} does not exist",
+                    "plan_type": f"ID: {plan_type_id}"
+                }
+            
+            # Get the appropriate API endpoint based on ritual type name
+            api_endpoint = self._get_api_endpoint(ritual_type_name)
+            if not api_endpoint:
+                return {
+                    "success": False,
+                    "message": f"No API endpoint found for ritual type: {ritual_type_name}",
+                    "plan_type": ritual_type_name
+                }
+            
+            # Transform data for external API
+            external_api_data = self._transform_data_for_external_api(validated_data)
+            
+            # Make request to external API
+            api_response = self._make_external_api_request(api_endpoint, external_api_data)
+            
+            if not api_response.get('success'):
+                return {
+                    "success": False,
+                    "message": f"External API request failed: {api_response.get('error', 'Unknown error')}",
+                    "plan_type": ritual_type_name,
+                    "endpoint_used": api_endpoint,
+                    "api_response": api_response
+                }
+            
+            # Save the meditation file and create MeditationGenerate record
+            meditation_record = self._save_meditation_file(
+                user=user,
+                ritual_type_name=ritual_type_name,
+                file_data=api_response.get('file_data'),
+                file_name=api_response.get('file_name', 'meditation.mp3')
             )
             
-            # Generate filename
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"meditation_{ritual_type.name.lower().replace(' ', '_')}_{timestamp}.mp3"
-            
-            # ALWAYS create a file - use placeholder MP3
-            file_content = self.get_placeholder_audio(filename)
-            
-            # Create meditation record with file
-            with transaction.atomic():
-                meditation = MeditationGenerate.objects.create(
-                    user=user,
-                    details=ritual,
-                    ritual_type=ritual_type,  # This is a ForeignKey to RitualType
-                    file=file_content
-                )
-            
-            logger.info(f"Created meditation file: {filename} for user {user.id}")
-            return meditation
+            return {
+                "success": True,
+                "message": "Meditation generated successfully",
+                "plan_type": ritual_type_name,
+                "endpoint_used": api_endpoint,
+                "api_response": api_response,
+                "file_url": meditation_record.file.url if meditation_record.file else None,
+                "meditation_id": meditation_record.id
+            }
             
         except Exception as e:
-            logger.error(f"Error creating meditation file: {str(e)}")
-            raise
+            logger.error(f"Error in ExternalMeditationService.process_meditation_request: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Internal server error: {str(e)}",
+                "plan_type": validated_data.get('plan_type', 'Unknown')
+            }
     
-    def get_placeholder_audio(self, filename):
-        """Get placeholder audio file"""
-        try:
-            # Path to the default MP3 file
-            default_mp3_path = os.path.join(os.path.dirname(__file__), 'muzic', 'sleep_manifestation.mp3')
+    def _get_api_endpoint(self, ritual_type_name):
+        """
+        Get the appropriate API endpoint based on ritual type name
+        
+        Args:
+            ritual_type_name: Name of the ritual type
             
-            with open(default_mp3_path, 'rb') as f:
-                audio_data = f.read()
-            return ContentFile(audio_data, name=filename)
-            
-        except Exception as e:
-            logger.error(f"Failed to load placeholder MP3: {str(e)}")
-            # Create a minimal audio file
-            content = f"Audio file for meditation. Error: {str(e)}"
-            return ContentFile(content.encode('utf-8'), name=filename)
+        Returns:
+            str: API endpoint URL or None if not found
+        """
+        return self.api_endpoints.get(ritual_type_name)
     
-    def get_file_url(self, meditation_record):
-        """Generate file URL for API response"""
-        try:
-            if not meditation_record.file:
-                return None
-                
-            # Use Django server URL for file serving
-            django_server_url = getattr(settings, 'DJANGO_SERVER_URL', 'http://31.97.98.47:8080')
+    def _transform_data_for_external_api(self, validated_data):
+        """
+        Transform our data format to match external API requirements
+        
+        Args:
+            validated_data: Validated data from serializer
             
-            # Remove trailing slash if present
-            django_server_url = django_server_url.rstrip('/')
-            file_url = meditation_record.file.url
-            # Remove leading slash if present
-            file_url = file_url.lstrip('/')
-            
-            return f"{django_server_url}/{file_url}"
-                
-        except Exception as e:
-            logger.error(f"Error generating file URL: {str(e)}")
-            return None
+        Returns:
+            dict: Data formatted for external API
+        """
+        external_data = {}
+        
+        # Map fields according to the mapping dictionary
+        for our_field, external_field in self.field_mappings.items():
+            if our_field in validated_data:
+                external_data[external_field] = validated_data[our_field]
+        
+        # Handle special transformations
+        if 'ritual_type' in external_data:
+            # Convert to proper case for external API
+            external_data['ritual_type'] = external_data['ritual_type'].title()
+        
+        if 'tone' in external_data:
+            # Convert to proper case for external API
+            external_data['tone'] = external_data['tone'].title()
+        
+        if 'voice' in external_data:
+            # Convert to proper case for external API
+            external_data['voice'] = external_data['voice'].title()
+        
+        if 'length' in external_data:
+            # Convert to integer for external API
+            try:
+                external_data['length'] = int(external_data['length'])
+            except (ValueError, TypeError):
+                external_data['length'] = 2  # Default to 2 minutes
+        
+        return external_data
     
-    def call_external_api(self, plan_type_name, payload):
-        """Call external meditation API"""
-        try:
-            api_endpoint = self.api_endpoints.get(plan_type_name)
-            if not api_endpoint:
-                raise ValueError(f"Unknown plan type: {plan_type_name}")
+    def _make_external_api_request(self, api_endpoint, data):
+        """
+        Make HTTP request to external API
+        
+        Args:
+            api_endpoint: The API endpoint URL
+            data: Data to send to the API
             
-            headers = {'Content-Type': 'application/json'}
-            logger.info(f"Sending request to {api_endpoint}")
-            logger.info(f"Request payload: {json.dumps(payload, indent=2)}")
+        Returns:
+            dict: Response from external API
+        """
+        try:
+            logger.info(f"Making request to external API: {api_endpoint}")
+            logger.info(f"Request data: {data}")
             
             response = requests.post(
                 api_endpoint,
-                json=payload,
-                headers=headers,
-                timeout=10
+                json=data,
+                headers={'Content-Type': 'application/json'},
+                timeout=30  # 30 second timeout
             )
             
-            logger.info(f"External API Response Status: {response.status_code}")
-            logger.info(f"External API Response: {response.text}")
+            logger.info(f"External API response status: {response.status_code}")
             
-            return response
-            
-        except Exception as e:
-            logger.error(f"Error calling external API: {str(e)}")
-            raise
-    
-    def process_meditation_request(self, user, validated_data):
-        """Process meditation request with external API call"""
-        try:
-            # Get plan_type name from ID
-            plan_type_id = validated_data['plan_type']
-            try:
-                ritual_type = RitualType.objects.get(id=plan_type_id)
-                plan_type_name = ritual_type.name
-            except RitualType.DoesNotExist:
-                plan_type_name = "Morning Spark"  # Default fallback
-            
-            logger.info(f"Processing meditation request for plan_type_id: {plan_type_id} -> {plan_type_name}")
-            logger.info(f"User: {user.id}")
-            logger.info(f"Data: {json.dumps(validated_data, indent=2)}")
-            
-            # Map the data to external API format
-            external_payload = {
-                "name": validated_data['gender'],
-                "goals": validated_data['goals'],
-                "dreamlife": validated_data['dream'],
-                "dream_activities": validated_data['happiness'],
-                "ritual_type": validated_data['ritual_type'].title(),  # "story" -> "Story"
-                "tone": validated_data['tone'].title(),  # "dreamy" -> "Dreamy"
-                "voice": validated_data['voice'].title(),  # "female" -> "Female"
-                "length": int(validated_data['duration']),  # "2" -> 2
-                "check_in": "string"
-            }
-            
-            logger.info(f"External API payload: {json.dumps(external_payload, indent=2)}")
-            
-            # Call external API
-            try:
-                api_response = self.call_external_api(plan_type_name, external_payload)
+            if response.status_code == 200:
+                response_data = response.json()
+                logger.info(f"External API response: {response_data}")
                 
-                if api_response.status_code == 200:
-                    # Success - create meditation record with external API response
-                    meditation_record = self.create_meditation_file(user, validated_data)
-                    file_url = self.get_file_url(meditation_record)
-                    
+                # Check if the response contains file data
+                if 'file' in response_data or 'file_url' in response_data:
+                    file_url = response_data.get('file_url') or response_data.get('file')
                     return {
-                        "success": True,
-                        "message": f"Successfully called {plan_type_name} API",
-                        "plan_type": plan_type_name,
-                        "api_endpoint": self.api_endpoints[plan_type_name],
-                        "api_status": api_response.status_code,
-                        "api_response": api_response.text,
-                        "file_url": file_url,
-                        "meditation_id": meditation_record.id,
-                        "ritual_id": meditation_record.details.id,
-                        "ritual_type_id": meditation_record.ritual_type.id,
-                        "external_payload": external_payload
+                        'success': True,
+                        'file_data': file_url,
+                        'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                        'response_data': response_data
                     }
                 else:
-                    # API call failed but still create meditation record
-                    meditation_record = self.create_meditation_file(user, validated_data)
-                    file_url = self.get_file_url(meditation_record)
-                    
                     return {
-                        "success": False,
-                        "error": f"External API returned status {api_response.status_code}",
-                        "plan_type": plan_type_name,
-                        "api_endpoint": self.api_endpoints[plan_type_name],
-                        "api_status": api_response.status_code,
-                        "api_response": api_response.text,
-                        "file_url": file_url,
-                        "meditation_id": meditation_record.id,
-                        "ritual_id": meditation_record.details.id,
-                        "ritual_type_id": meditation_record.ritual_type.id,
-                        "external_payload": external_payload
+                        'success': True,
+                        'file_data': None,
+                        'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                        'response_data': response_data
                     }
-                    
-            except Exception as e:
-                # External API failed but still create meditation record
-                meditation_record = self.create_meditation_file(user, validated_data)
-                file_url = self.get_file_url(meditation_record)
-                
+            else:
+                logger.error(f"External API request failed with status {response.status_code}: {response.text}")
                 return {
-                    "success": False,
-                    "error": f"External API call failed: {str(e)}",
-                    "plan_type": plan_type_name,
-                    "api_endpoint": self.api_endpoints.get(plan_type_name),
-                    "file_url": file_url,
-                    "meditation_id": meditation_record.id,
-                    "ritual_id": meditation_record.details.id,
-                    "ritual_type_id": meditation_record.ritual_type.id,
-                    "external_payload": external_payload
+                    'success': False,
+                    'error': f"HTTP {response.status_code}: {response.text}"
                 }
                 
-        except Exception as e:
-            logger.error(f"Error in process_meditation_request: {str(e)}")
+        except requests.exceptions.Timeout:
+            logger.error(f"Timeout error when calling external API: {api_endpoint}")
             return {
-                "success": False,
-                "error": f"Failed to create meditation: {str(e)}"
+                'success': False,
+                'error': 'Request timeout'
             }
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error when calling external API: {str(e)}")
+            return {
+                'success': False,
+                'error': f'Request failed: {str(e)}'
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error when calling external API: {str(e)}")
+            return {
+                'success': False,
+                'error': f'Unexpected error: {str(e)}'
+            }
+    
+    def _save_meditation_file(self, user, ritual_type_name, file_data, file_name):
+        """
+        Save meditation file and create MeditationGenerate record
+        
+        Args:
+            user: The authenticated user
+            ritual_type_name: Name of the ritual type
+            file_data: File data or URL from external API
+            file_name: Name for the file
+            
+        Returns:
+            MeditationGenerate: Created meditation record
+        """
+        try:
+            # Get or create RitualType
+            ritual_type, created = RitualType.objects.get_or_create(
+                name=ritual_type_name,
+                defaults={'description': f'External meditation for {ritual_type_name}'}
+            )
+            
+            # Create a placeholder Rituals record for the meditation
+            ritual = Rituals.objects.create(
+                name=f"{ritual_type_name} Meditation",
+                description=f"Generated meditation for {ritual_type_name}",
+                ritual_type='story',  # Default to story type
+                tone='dreamy',  # Default tone
+                voice='female',  # Default voice
+                duration='2'  # Default duration
+            )
+            
+            # Create MeditationGenerate record
+            meditation = MeditationGenerate.objects.create(
+                user=user,
+                details=ritual,
+                ritual_type=ritual_type
+            )
+            
+            # If we have file data, save it
+            if file_data:
+                try:
+                    # If file_data is a URL, download it
+                    if file_data.startswith('http'):
+                        file_response = requests.get(file_data, timeout=30)
+                        if file_response.status_code == 200:
+                            content = ContentFile(file_response.content, name=file_name)
+                            meditation.file.save(file_name, content, save=True)
+                        else:
+                            logger.warning(f"Failed to download file from {file_data}")
+                    else:
+                        # If file_data is base64 or other format, handle accordingly
+                        logger.warning(f"Unsupported file_data format: {type(file_data)}")
+                        
+                except Exception as e:
+                    logger.error(f"Error saving meditation file: {str(e)}")
+                    # Continue without file - meditation record is still created
+            
+            return meditation
+            
+        except Exception as e:
+            logger.error(f"Error creating meditation record: {str(e)}")
+            raise
+
+
+
