@@ -3,9 +3,9 @@ from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import Literal
 import re
-from generation import generate_script
-from synthesis import synthesize_audio
-from music import mix_music
+from .generation import generate_script
+from .synthesis import synthesize_audio
+from .music import mix_music
 from elevenlabs.core.api_error import ApiError
 
 class Request(BaseModel):
