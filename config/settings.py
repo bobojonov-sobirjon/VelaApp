@@ -301,7 +301,7 @@ MEDITATION_API_CONFIG = {
 }
 
 # Django server URL for file serving
-DJANGO_SERVER_URL = os.environ.get('DJANGO_SERVER_URL', 'http://31.97.98.47:9000')
+DJANGO_SERVER_URL = os.environ.get('DJANGO_SERVER_URL', 'http://31.97.98.47:8080')
 
 # External meditation API settings
 EXTERNAL_MEDITATION_API_ENABLED = os.environ.get('EXTERNAL_MEDITATION_API_ENABLED', 'False').lower() == 'true'
