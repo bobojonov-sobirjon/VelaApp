@@ -161,6 +161,7 @@ class ExternalMeditationService:
             if not api_endpoint:
                 raise ValueError(f"Unknown plan type: {plan_type}")
             
+            headers = {'Content-Type': 'application/json'}
             logger.info(f"Sending request to {api_endpoint}")
             logger.info(f"Request payload: {json.dumps(payload, indent=2)}")
             logger.info(f"Request headers: {headers}")
@@ -168,7 +169,7 @@ class ExternalMeditationService:
             response = requests.post(
                 api_endpoint,
                 json=payload,
-                headers={'Content-Type': 'application/json'},
+                headers=headers,
                 timeout=30
             )
             
