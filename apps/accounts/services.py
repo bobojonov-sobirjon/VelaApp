@@ -231,8 +231,35 @@ class ExternalMeditationService:
             logger.error(f"Error generating file URL: {str(e)}")
             return None
     
+    def call_external_api(self, plan_type_name, payload):
+        """Call external meditation API"""
+        try:
+            api_endpoint = self.api_endpoints.get(plan_type_name)
+            if not api_endpoint:
+                raise ValueError(f"Unknown plan type: {plan_type_name}")
+            
+            headers = {'Content-Type': 'application/json'}
+            logger.info(f"Sending request to {api_endpoint}")
+            logger.info(f"Request payload: {json.dumps(payload, indent=2)}")
+            
+            response = requests.post(
+                api_endpoint,
+                json=payload,
+                headers=headers,
+                timeout=10
+            )
+            
+            logger.info(f"External API Response Status: {response.status_code}")
+            logger.info(f"External API Response: {response.text}")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error calling external API: {str(e)}")
+            raise
+    
     def process_meditation_request(self, user, validated_data):
-        """Process meditation request - ALWAYS creates file and returns URL"""
+        """Process meditation request with external API call"""
         try:
             # Get plan_type name from ID
             plan_type_id = validated_data['plan_type']
@@ -261,25 +288,63 @@ class ExternalMeditationService:
             
             logger.info(f"External API payload: {json.dumps(external_payload, indent=2)}")
             
-            # ALWAYS create meditation record with file
-            meditation_record = self.create_meditation_file(user, validated_data)
-            
-            # Generate file URL
-            file_url = self.get_file_url(meditation_record)
-            
-            logger.info(f"Created meditation record: {meditation_record.id}")
-            logger.info(f"File URL: {file_url}")
-            
-            return {
-                "success": True,
-                "message": f"Meditation created successfully for {plan_type_name}",
-                "plan_type": plan_type_name,
-                "file_url": file_url,
-                "meditation_id": meditation_record.id,
-                "ritual_id": meditation_record.details.id,
-                "ritual_type_id": meditation_record.ritual_type.id,
-                "external_payload": external_payload
-            }
+            # Call external API
+            try:
+                api_response = self.call_external_api(plan_type_name, external_payload)
+                
+                if api_response.status_code == 200:
+                    # Success - create meditation record with external API response
+                    meditation_record = self.create_meditation_file(user, validated_data)
+                    file_url = self.get_file_url(meditation_record)
+                    
+                    return {
+                        "success": True,
+                        "message": f"Successfully called {plan_type_name} API",
+                        "plan_type": plan_type_name,
+                        "api_endpoint": self.api_endpoints[plan_type_name],
+                        "api_status": api_response.status_code,
+                        "api_response": api_response.text,
+                        "file_url": file_url,
+                        "meditation_id": meditation_record.id,
+                        "ritual_id": meditation_record.details.id,
+                        "ritual_type_id": meditation_record.ritual_type.id,
+                        "external_payload": external_payload
+                    }
+                else:
+                    # API call failed but still create meditation record
+                    meditation_record = self.create_meditation_file(user, validated_data)
+                    file_url = self.get_file_url(meditation_record)
+                    
+                    return {
+                        "success": False,
+                        "error": f"External API returned status {api_response.status_code}",
+                        "plan_type": plan_type_name,
+                        "api_endpoint": self.api_endpoints[plan_type_name],
+                        "api_status": api_response.status_code,
+                        "api_response": api_response.text,
+                        "file_url": file_url,
+                        "meditation_id": meditation_record.id,
+                        "ritual_id": meditation_record.details.id,
+                        "ritual_type_id": meditation_record.ritual_type.id,
+                        "external_payload": external_payload
+                    }
+                    
+            except Exception as e:
+                # External API failed but still create meditation record
+                meditation_record = self.create_meditation_file(user, validated_data)
+                file_url = self.get_file_url(meditation_record)
+                
+                return {
+                    "success": False,
+                    "error": f"External API call failed: {str(e)}",
+                    "plan_type": plan_type_name,
+                    "api_endpoint": self.api_endpoints.get(plan_type_name),
+                    "file_url": file_url,
+                    "meditation_id": meditation_record.id,
+                    "ritual_id": meditation_record.details.id,
+                    "ritual_type_id": meditation_record.ritual_type.id,
+                    "external_payload": external_payload
+                }
                 
         except Exception as e:
             logger.error(f"Error in process_meditation_request: {str(e)}")
