@@ -1014,7 +1014,7 @@ class ExternalMeditationAPIView(APIView):
             400: "Bad Request: Invalid plan type or missing required fields",
             500: "Internal Server Error: API request failed"
         },
-        operation_description="Send meditation request to external API based on plan type ID. The plan_type field should be a valid RitualType ID that exists in the database. For choice fields, send keys instead of values: ritual_type ('story', 'guided_meditations'), tone ('dreamy', 'asmr'), voice ('male', 'female'), length ('2', '5', '10'). The response includes the plan type name, saved file URL and meditation record ID.",
+        operation_description="Send meditation request to external API based on plan type ID. The plan_type field should be a valid RitualType ID that exists in the database. For choice fields, send keys instead of values: ritual_type ('story', 'guided_meditations'), tone ('dreamy', 'asmr'), voice ('male', 'female'), duration ('2', '5', '10'). The response includes the plan type name, saved file URL and meditation record ID.",
         tags=['External Meditation API']
     )
     def post(self, request):

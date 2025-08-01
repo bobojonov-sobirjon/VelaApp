@@ -202,7 +202,7 @@ class ExternalMeditationService:
                 ritual_type=response_data.get('ritual_type', 'Story'),
                 tone=response_data.get('tone', 'Dreamy'),
                 voice=response_data.get('voice', 'Female'),
-                duration=str(response_data.get('length', 2))
+                duration=str(response_data.get('duration', 2))
             )
             
             # Generate filename
@@ -250,7 +250,7 @@ class ExternalMeditationService:
                 ritual_type=response_data.get('ritual_type', 'Story'),
                 tone=response_data.get('tone', 'Dreamy'),
                 voice=response_data.get('voice', 'Female'),
-                duration=str(response_data.get('length', 2))
+                duration=str(response_data.get('duration', 2))
             )
             meditation = MeditationGenerate.objects.create(
                 user=user,
@@ -303,41 +303,41 @@ class ExternalMeditationService:
             
             # Try multiple payload formats for external API
             payload_formats = [
-                # Format 1: Original field names with mapped values
+                # Format 1: New field names with mapped values
                 {
-                    "name": validated_data['name'],
+                    "gender": validated_data['gender'],
+                    "dream": validated_data['dream'],
                     "goals": validated_data['goals'],
-                    "dreamlife": validated_data['dreamlife'],
-                    "dream_activities": validated_data['dream_activities'],
+                    "age_range": validated_data['age_range'],
+                    "happiness": validated_data['happiness'],
                     "ritual_type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),
                     "tone": tone_mapping.get(validated_data['tone'], 'Dreamy'),
                     "voice": voice_mapping.get(validated_data['voice'], 'Female'),
-                    "length": int(validated_data['length']),
-                    "check_in": validated_data.get('check_in', '')
+                    "duration": int(validated_data['duration'])
                 },
                 # Format 2: Different field name for ritual type
                 {
-                    "name": validated_data['name'],
+                    "gender": validated_data['gender'],
+                    "dream": validated_data['dream'],
                     "goals": validated_data['goals'],
-                    "dreamlife": validated_data['dreamlife'],
-                    "dream_activities": validated_data['dream_activities'],
+                    "age_range": validated_data['age_range'],
+                    "happiness": validated_data['happiness'],
                     "type": ritual_type_mapping.get(validated_data['ritual_type'], 'Story'),
                     "tone": tone_mapping.get(validated_data['tone'], 'Dreamy'),
                     "voice": voice_mapping.get(validated_data['voice'], 'Female'),
-                    "length": int(validated_data['length']),
-                    "check_in": validated_data.get('check_in', '')
+                    "duration": int(validated_data['duration'])
                 },
                 # Format 3: Original values without mapping
                 {
-                    "name": validated_data['name'],
+                    "gender": validated_data['gender'],
+                    "dream": validated_data['dream'],
                     "goals": validated_data['goals'],
-                    "dreamlife": validated_data['dreamlife'],
-                    "dream_activities": validated_data['dream_activities'],
+                    "age_range": validated_data['age_range'],
+                    "happiness": validated_data['happiness'],
                     "ritual_type": validated_data['ritual_type'],
                     "tone": validated_data['tone'],
                     "voice": validated_data['voice'],
-                    "length": validated_data['length'],
-                    "check_in": validated_data.get('check_in', '')
+                    "duration": validated_data['duration']
                 }
             ]
             
