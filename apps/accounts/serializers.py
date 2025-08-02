@@ -156,14 +156,65 @@ class CustomUserDetailSerializer(serializers.ModelSerializer):
         ]
     
     def get_weekly_login_stats(self, obj):
-        """Get weekly login statistics for the user"""
+        """Get weekly login status as array of day objects"""
         try:
             user_detail = obj.details.first()
             if user_detail:
-                return user_detail.get_weekly_login_stats()
-            return None
+                weekly_stats = user_detail.get_weekly_login_stats()
+                days = weekly_stats.get('days', {})
+                
+                return [
+                    {
+                        "name": "Monday",
+                        "login": days.get('Monday', {}).get('logged_in', False)
+                    },
+                    {
+                        "name": "Tuesday",
+                        "login": days.get('Tuesday', {}).get('logged_in', False)
+                    },
+                    {
+                        "name": "Wednesday",
+                        "login": days.get('Wednesday', {}).get('logged_in', False)
+                    },
+                    {
+                        "name": "Thursday",
+                        "login": days.get('Thursday', {}).get('logged_in', False)
+                    },
+                    {
+                        "name": "Friday",
+                        "login": days.get('Friday', {}).get('logged_in', False)
+                    },
+                    {
+                        "name": "Saturday",
+                        "login": days.get('Saturday', {}).get('logged_in', False)
+                    },
+                    {
+                        "name": "Sunday",
+                        "login": days.get('Sunday', {}).get('logged_in', False)
+                    }
+                ]
+            
+            # Default array if no user detail exists
+            return [
+                {"name": "Monday", "login": False},
+                {"name": "Tuesday", "login": False},
+                {"name": "Wednesday", "login": False},
+                {"name": "Thursday", "login": False},
+                {"name": "Friday", "login": False},
+                {"name": "Saturday", "login": False},
+                {"name": "Sunday", "login": False}
+            ]
         except Exception:
-            return None
+            # Default array if error occurs
+            return [
+                {"name": "Monday", "login": False},
+                {"name": "Tuesday", "login": False},
+                {"name": "Wednesday", "login": False},
+                {"name": "Thursday", "login": False},
+                {"name": "Friday", "login": False},
+                {"name": "Saturday", "login": False},
+                {"name": "Sunday", "login": False}
+            ]
 
     def update(self, instance, validated_data):
 
