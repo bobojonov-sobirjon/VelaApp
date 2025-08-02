@@ -407,6 +407,11 @@ class ExternalMeditationService:
                     'User-Agent': 'Vela-Meditation-App/1.0'
                 }
                 
+                # Log the exact request being sent
+                logger.info(f"Request URL: {api_endpoint}")
+                logger.info(f"Request headers: {headers}")
+                logger.info(f"Request data (JSON): {json.dumps(data, indent=2)}")
+                
                 response = requests.post(
                     api_endpoint,
                     json=data,
@@ -416,36 +421,60 @@ class ExternalMeditationService:
                 
                 logger.debug(f"Response status: {response.status_code}")
                 logger.debug(f"Response headers: {dict(response.headers)}")
+                logger.debug(f"Response content: {response.text[:500]}...")  # Log first 500 chars
                 
                 if response.status_code == 200:
-                    response_data = response.json()
-                    logger.info(f"Success response: {response_data}")
-                    
-                    # Check if the response contains file data
-                    if 'file' in response_data or 'file_url' in response_data:
-                        file_url = response_data.get('file_url') or response_data.get('file')
-                        logger.debug(f"File URL found: {file_url}")
+                    # Check if response has content
+                    if not response.text.strip():
+                        logger.warning("Empty response from external API")
                         return {
-                            'success': True,
-                            'file_data': file_url,
-                            'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
-                            'response_data': response_data
+                            'success': False,
+                            'error': 'Empty response from external API'
                         }
-                    else:
-                        logger.warning("No file URL in response")
+                    
+                    try:
+                        response_data = response.json()
+                        logger.info(f"Success response: {response_data}")
+                        
+                        # Check if the response contains file data
+                        if 'file' in response_data or 'file_url' in response_data:
+                            file_url = response_data.get('file_url') or response_data.get('file')
+                            logger.debug(f"File URL found: {file_url}")
+                            return {
+                                'success': True,
+                                'file_data': file_url,
+                                'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                                'response_data': response_data
+                            }
+                        else:
+                            logger.warning("No file URL in response")
+                            return {
+                                'success': True,
+                                'file_data': None,
+                                'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                                'response_data': response_data
+                            }
+                    except json.JSONDecodeError as json_error:
+                        logger.error(f"JSON decode error: {json_error}")
+                        logger.error(f"Response content: {response.text}")
                         return {
-                            'success': True,
-                            'file_data': None,
-                            'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
-                            'response_data': response_data
+                            'success': False,
+                            'error': f'Invalid JSON response from external API: {str(json_error)}'
                         }
                 elif response.status_code == 422:
-                    error_detail = response.json().get('detail', 'Validation error')
-                    logger.error(f"HTTP 422 validation error: {error_detail}")
-                    return {
-                        'success': False,
-                        'error': f"HTTP 422: Validation error - {error_detail}"
-                    }
+                    try:
+                        error_detail = response.json().get('detail', 'Validation error')
+                        logger.error(f"HTTP 422 validation error: {error_detail}")
+                        return {
+                            'success': False,
+                            'error': f"HTTP 422: Validation error - {error_detail}"
+                        }
+                    except json.JSONDecodeError:
+                        logger.error(f"HTTP 422 with invalid JSON: {response.text}")
+                        return {
+                            'success': False,
+                            'error': f"HTTP 422: Validation error - Invalid JSON response"
+                        }
                 else:
                     logger.error(f"HTTP {response.status_code} error: {response.text}")
                     return {
