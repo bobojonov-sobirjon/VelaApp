@@ -240,13 +240,21 @@ class ExternalMeditationService:
                     file_name=None
                 )
                 
+                # Build the full URL for the file
+                file_url = None
+                if meditation_record.file:
+                    from django.conf import settings
+                    # Get the base URL from settings or construct it
+                    base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                    file_url = f"{base_url}{meditation_record.file.url}"
+                
                 return {
                     "success": True,
                     "message": "Meditation record created (external API unavailable)",
                     "plan_type": ritual_type_name,
                     "endpoint_used": api_endpoint,
                     "api_response": {"error": "API not reachable"},
-                    "file_url": None,
+                    "file_url": file_url,
                     "meditation_id": meditation_record.id,
                     "ritual_type_name": ritual_type_name,
                     "warning": "External API was unavailable, meditation created without audio file"
@@ -328,13 +336,21 @@ class ExternalMeditationService:
                     "ritual_type_name": ritual_type_name
                 }
                 
+                # Build the full URL for the file
+                file_url = None
+                if meditation_record.file:
+                    from django.conf import settings
+                    # Get the base URL from settings or construct it
+                    base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                    file_url = f"{base_url}{meditation_record.file.url}"
+                
                 return {
                     "success": True,
                     "message": "Meditation generated successfully",
                     "plan_type": ritual_type_name,
                     "endpoint_used": api_endpoint,
                     "api_response": api_response,
-                    "file_url": meditation_record.file.url if meditation_record.file else None,
+                    "file_url": file_url,
                     "meditation_id": meditation_record.id,
                     "ritual_type_name": ritual_type_name
                 }
@@ -554,6 +570,18 @@ class ExternalMeditationService:
                     # Check if content contains high bytes (binary indicator)
                     high_bytes = sum(1 for b in response.content[:100] if b > 127)
                     logger.debug(f"High bytes in first 100 bytes: {high_bytes}")
+                    
+                    # Early detection of binary data - if we see binary markers, treat as binary immediately
+                    if (b'\x00' in response.content[:100] or 
+                        high_bytes > 50 or 
+                        response.content.startswith(b'ID3')):
+                        logger.info("Early detection of binary data - treating as audio file")
+                        return {
+                            'success': True,
+                            'file_data': response.content,  # Return binary data
+                            'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                            'response_data': {'file_type': 'binary_audio'}
+                        }
                 
                 if response.status_code == 200:
                     # Check if response has content
@@ -575,11 +603,7 @@ class ExternalMeditationService:
                         sum(1 for b in response.content[:100] if b > 127) > 50  # Many high bytes indicate binary
                     )
                     
-                    logger.debug(f"Content type: {content_type}")
-                    logger.debug(f"Is binary: {is_binary}")
-                    logger.debug(f"Content starts with ID3: {response.content.startswith(b'ID3')}")
-                    logger.debug(f"Content length: {len(response.content)}")
-                    
+                    # If binary, handle immediately without any text operations
                     if is_binary:
                         logger.info("Received binary audio file from external API")
                         return {
@@ -588,6 +612,11 @@ class ExternalMeditationService:
                             'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
                             'response_data': {'file_type': 'binary_audio'}
                         }
+                    
+                    logger.debug(f"Content type: {content_type}")
+                    logger.debug(f"Is binary: {is_binary}")
+                    logger.debug(f"Content starts with ID3: {response.content.startswith(b'ID3')}")
+                    logger.debug(f"Content length: {len(response.content)}")
                     
                     # Only try to parse as JSON if it's not binary
                     try:
