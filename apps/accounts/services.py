@@ -844,7 +844,7 @@ class ExternalMeditationService:
         Save meditation file and create MeditationGenerate record.
         
         Args:
-            user: The authenticated user.
+            user: The authenticated user (can be None for unauthenticated requests).
             ritual_type_name: Name of the ritual type.
             file_data: File data or URL from external API.
             file_name: Name for the file.
@@ -868,6 +868,29 @@ class ExternalMeditationService:
                 voice='female',
                 duration='2'
             )
+            
+            # Handle the case where user is None (unauthenticated request)
+            if user is None:
+                # For unauthenticated requests, we'll create a meditation record without a user
+                # This requires the user field to be nullable in the model
+                # For now, let's create a default anonymous user
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                
+                # Try to get or create an anonymous user
+                try:
+                    anonymous_user = User.objects.get(username='anonymous')
+                except User.DoesNotExist:
+                    # Create an anonymous user for unauthenticated requests
+                    anonymous_user = User.objects.create(
+                        username='anonymous',
+                        email='anonymous@vela.com',
+                        first_name='Anonymous',
+                        last_name='User'
+                    )
+                
+                user = anonymous_user
+                logger.info("Using anonymous user for unauthenticated meditation request")
             
             # Create MeditationGenerate record
             meditation = MeditationGenerate.objects.create(
