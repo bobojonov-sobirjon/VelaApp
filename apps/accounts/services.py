@@ -206,7 +206,7 @@ class ExternalMeditationService:
                     "success": False,
                     "message": f"Plan type with ID {plan_type_id} does not exist",
                     "plan_type": f"ID: {plan_type_id}",
-                    "ritual_type_name": None
+                    "ritual_type_name": None,
                 }
             
             # Get the appropriate API endpoint based on ritual type name
@@ -466,7 +466,12 @@ class ExternalMeditationService:
             external_data['ritual_type'] = external_data['ritual_type'].capitalize()
         
         if 'tone' in external_data:
-            external_data['tone'] = external_data['tone'].capitalize()
+            # Map tone values to external API format
+            tone_mapping = {
+                'dreamy': 'Dreamy',
+                'asmr': 'ASMR'
+            }
+            external_data['tone'] = tone_mapping.get(external_data['tone'], external_data['tone'].capitalize())
         
         if 'voice' in external_data:
             external_data['voice'] = external_data['voice'].capitalize()
