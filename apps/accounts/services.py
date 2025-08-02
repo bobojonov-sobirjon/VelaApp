@@ -185,55 +185,70 @@ class ExternalMeditationService:
         Returns:
             dict: Response with success status, message, and file details
         """
+        print(f"🔍 Starting ExternalMeditationService.process_meditation_request")
+        print(f"📝 Validated data: {validated_data}")
+        
         try:
             # Get plan type from validated data
             plan_type_id = validated_data.get('plan_type')
+            print(f"🎯 Plan type ID: {plan_type_id}")
             
             # Get the ritual type name from the plan_type ID
             try:
                 ritual_type = RitualType.objects.get(id=plan_type_id)
                 ritual_type_name = ritual_type.name
+                print(f"✅ Found ritual type: {ritual_type_name}")
             except RitualType.DoesNotExist:
-                            return {
-                "success": False,
-                "message": f"Plan type with ID {plan_type_id} does not exist",
-                "plan_type": f"ID: {plan_type_id}",
-                "ritual_type_name": None
-            }
+                print(f"❌ RitualType with ID {plan_type_id} does not exist")
+                return {
+                    "success": False,
+                    "message": f"Plan type with ID {plan_type_id} does not exist",
+                    "plan_type": f"ID: {plan_type_id}",
+                    "ritual_type_name": None
+                }
             
             # Get the appropriate API endpoint based on ritual type name
             api_endpoint = self._get_api_endpoint(ritual_type_name)
+            print(f"🌐 API endpoint: {api_endpoint}")
+            
             if not api_endpoint:
-                            return {
-                "success": False,
-                "message": f"No API endpoint found for ritual type: {ritual_type_name}",
-                "plan_type": ritual_type_name,
-                "ritual_type_name": ritual_type_name
-            }
+                print(f"❌ No API endpoint found for ritual type: {ritual_type_name}")
+                return {
+                    "success": False,
+                    "message": f"No API endpoint found for ritual type: {ritual_type_name}",
+                    "plan_type": ritual_type_name,
+                    "ritual_type_name": ritual_type_name
+                }
             
             # Transform data for external API
             external_api_data = self._transform_data_for_external_api(validated_data)
+            print(f"🔄 Transformed data for external API: {external_api_data}")
             
             # Make request to external API
+            print(f"📡 Making request to external API...")
             api_response = self._make_external_api_request(api_endpoint, external_api_data)
+            print(f"📥 External API response: {api_response}")
             
             if not api_response.get('success'):
-                            return {
-                "success": False,
-                "message": f"External API request failed: {api_response.get('error', 'Unknown error')}",
-                "plan_type": ritual_type_name,
-                "endpoint_used": api_endpoint,
-                "api_response": api_response,
-                "ritual_type_name": ritual_type_name
-            }
+                print(f"❌ External API request failed: {api_response.get('error', 'Unknown error')}")
+                return {
+                    "success": False,
+                    "message": f"External API request failed: {api_response.get('error', 'Unknown error')}",
+                    "plan_type": ritual_type_name,
+                    "endpoint_used": api_endpoint,
+                    "api_response": api_response,
+                    "ritual_type_name": ritual_type_name
+                }
             
             # Save the meditation file and create MeditationGenerate record
+            print(f"💾 Saving meditation file...")
             meditation_record = self._save_meditation_file(
                 user=user,
                 ritual_type_name=ritual_type_name,
                 file_data=api_response.get('file_data'),
                 file_name=api_response.get('file_name', 'meditation.mp3')
             )
+            print(f"✅ Meditation record created with ID: {meditation_record.id}")
             
             return {
                 "success": True,
@@ -247,6 +262,9 @@ class ExternalMeditationService:
             }
             
         except Exception as e:
+            print(f"💥 Exception in ExternalMeditationService.process_meditation_request: {str(e)}")
+            import traceback
+            traceback.print_exc()
             logger.error(f"Error in ExternalMeditationService.process_meditation_request: {str(e)}")
             return {
                 "success": False,
@@ -277,42 +295,53 @@ class ExternalMeditationService:
         Returns:
             dict: Data formatted for external API
         """
+        print(f"🔄 Starting data transformation...")
         external_data = {}
         
         # Map fields according to the mapping dictionary
         for our_field, external_field in self.field_mappings.items():
             if our_field in validated_data:
                 external_data[external_field] = validated_data[our_field]
+                print(f"  📝 Mapped {our_field} -> {external_field}: {validated_data[our_field]}")
         
         # Handle special transformations for external API format
         if 'ritual_type' in external_data:
             # Convert to proper case for external API
+            original_value = external_data['ritual_type']
             if external_data['ritual_type'] == 'story':
                 external_data['ritual_type'] = 'Story'
             elif external_data['ritual_type'] == 'guided_meditations':
                 external_data['ritual_type'] = 'Guided'
+            print(f"  🔄 ritual_type: {original_value} -> {external_data['ritual_type']}")
         
         if 'tone' in external_data:
             # Convert to proper case for external API
+            original_value = external_data['tone']
             if external_data['tone'] == 'dreamy':
                 external_data['tone'] = 'Dreamy'
             elif external_data['tone'] == 'asmr':
                 external_data['tone'] = 'ASMR'
+            print(f"  🔄 tone: {original_value} -> {external_data['tone']}")
         
         if 'voice' in external_data:
             # Convert to proper case for external API
+            original_value = external_data['voice']
             if external_data['voice'] == 'female':
                 external_data['voice'] = 'Female'
             elif external_data['voice'] == 'male':
                 external_data['voice'] = 'Male'
+            print(f"  🔄 voice: {original_value} -> {external_data['voice']}")
         
         if 'length' in external_data:
             # Convert to integer for external API
+            original_value = external_data['length']
             try:
                 external_data['length'] = int(external_data['length'])
             except (ValueError, TypeError):
                 external_data['length'] = 2  # Default to 2 minutes
+            print(f"  🔄 length: {original_value} -> {external_data['length']}")
         
+        print(f"✅ Final transformed data: {external_data}")
         return external_data
     
     def _make_external_api_request(self, api_endpoint, data):
@@ -327,6 +356,8 @@ class ExternalMeditationService:
             dict: Response from external API
         """
         try:
+            print(f"📡 Making request to external API: {api_endpoint}")
+            print(f"📤 Request data: {data}")
             logger.info(f"Making request to external API: {api_endpoint}")
             logger.info(f"Request data: {data}")
             
@@ -337,15 +368,18 @@ class ExternalMeditationService:
                 timeout=30  # 30 second timeout
             )
             
+            print(f"📥 Response status: {response.status_code}")
             logger.info(f"External API response status: {response.status_code}")
             
             if response.status_code == 200:
                 response_data = response.json()
+                print(f"✅ Success response: {response_data}")
                 logger.info(f"External API response: {response_data}")
                 
                 # Check if the response contains file data
                 if 'file' in response_data or 'file_url' in response_data:
                     file_url = response_data.get('file_url') or response_data.get('file')
+                    print(f"📁 File URL found: {file_url}")
                     return {
                         'success': True,
                         'file_data': file_url,
@@ -353,6 +387,7 @@ class ExternalMeditationService:
                         'response_data': response_data
                     }
                 else:
+                    print(f"⚠️ No file URL in response")
                     return {
                         'success': True,
                         'file_data': None,
@@ -360,6 +395,7 @@ class ExternalMeditationService:
                         'response_data': response_data
                     }
             else:
+                print(f"❌ HTTP {response.status_code} error: {response.text}")
                 logger.error(f"External API request failed with status {response.status_code}: {response.text}")
                 return {
                     'success': False,
@@ -367,18 +403,21 @@ class ExternalMeditationService:
                 }
                 
         except requests.exceptions.Timeout:
+            print(f"⏰ Timeout error when calling external API: {api_endpoint}")
             logger.error(f"Timeout error when calling external API: {api_endpoint}")
             return {
                 'success': False,
                 'error': 'Request timeout'
             }
         except requests.exceptions.RequestException as e:
+            print(f"🌐 Request error when calling external API: {str(e)}")
             logger.error(f"Request error when calling external API: {str(e)}")
             return {
                 'success': False,
                 'error': f'Request failed: {str(e)}'
             }
         except Exception as e:
+            print(f"💥 Unexpected error when calling external API: {str(e)}")
             logger.error(f"Unexpected error when calling external API: {str(e)}")
             return {
                 'success': False,
