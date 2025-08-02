@@ -158,52 +158,37 @@ class CustomUserDetailSerializer(serializers.ModelSerializer):
     def get_weekly_login_stats(self, obj):
         """Get weekly login status as array of day objects"""
         try:
-            user_detail = obj.details.first()
-            if user_detail:
-                weekly_stats = user_detail.get_weekly_login_stats()
-                days = weekly_stats.get('days', {})
-                
-                return [
-                    {
-                        "name": "Monday",
-                        "login": days.get('Monday', {}).get('logged_in', False)
-                    },
-                    {
-                        "name": "Tuesday",
-                        "login": days.get('Tuesday', {}).get('logged_in', False)
-                    },
-                    {
-                        "name": "Wednesday",
-                        "login": days.get('Wednesday', {}).get('logged_in', False)
-                    },
-                    {
-                        "name": "Thursday",
-                        "login": days.get('Thursday', {}).get('logged_in', False)
-                    },
-                    {
-                        "name": "Friday",
-                        "login": days.get('Friday', {}).get('logged_in', False)
-                    },
-                    {
-                        "name": "Saturday",
-                        "login": days.get('Saturday', {}).get('logged_in', False)
-                    },
-                    {
-                        "name": "Sunday",
-                        "login": days.get('Sunday', {}).get('logged_in', False)
-                    }
-                ]
+            from datetime import datetime, timedelta
             
-            # Default array if no user detail exists
-            return [
-                {"name": "Monday", "login": False},
-                {"name": "Tuesday", "login": False},
-                {"name": "Wednesday", "login": False},
-                {"name": "Thursday", "login": False},
-                {"name": "Friday", "login": False},
-                {"name": "Saturday", "login": False},
-                {"name": "Sunday", "login": False}
-            ]
+            # Get current week's Monday and Sunday
+            today = timezone.now().date()
+            monday = today - timedelta(days=today.weekday())
+            sunday = monday + timedelta(days=6)
+            
+            # Get all login records for this week
+            week_logins = obj.login_records.filter(
+                login_date__gte=monday,
+                login_date__lte=sunday
+            ).values_list('login_date', flat=True)
+            
+            # Convert to set for faster lookup
+            login_dates = set(week_logins)
+            
+            # Create array for each day of the week
+            result = []
+            day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            
+            for i, day_name in enumerate(day_names):
+                current_date = monday + timedelta(days=i)
+                logged_in = current_date in login_dates
+                
+                result.append({
+                    "name": day_name,
+                    "login": logged_in
+                })
+            
+            return result
+            
         except Exception:
             # Default array if error occurs
             return [
