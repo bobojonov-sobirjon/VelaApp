@@ -461,7 +461,7 @@ class ExternalMeditationService:
                 # Increase timeout to 60 seconds and add better headers
                 headers = {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json',
+                    'Accept': 'application/json, audio/mpeg, */*',
                     'User-Agent': 'Vela-Meditation-App/1.0'
                 }
                 
@@ -479,18 +479,30 @@ class ExternalMeditationService:
                 
                 logger.debug(f"Response status: {response.status_code}")
                 logger.debug(f"Response headers: {dict(response.headers)}")
-                logger.debug(f"Response content length: {len(response.text)}")
-                logger.debug(f"Response content: {response.text[:1000]}...")  # Log first 1000 chars
+                logger.debug(f"Response content length: {len(response.content)}")
+                logger.debug(f"Response content type: {response.headers.get('content-type', 'unknown')}")
                 
                 if response.status_code == 200:
                     # Check if response has content
-                    if not response.text.strip():
+                    if not response.content:
                         logger.warning("Empty response from external API")
                         return {
                             'success': False,
                             'error': 'Empty response from external API - server returned no content'
                         }
                     
+                    # Check if response is binary (MP3 file)
+                    content_type = response.headers.get('content-type', '').lower()
+                    if 'audio' in content_type or 'mpeg' in content_type or response.content.startswith(b'ID3'):
+                        logger.info("Received binary audio file from external API")
+                        return {
+                            'success': True,
+                            'file_data': response.content,  # Return binary data
+                            'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                            'response_data': {'file_type': 'binary_audio'}
+                        }
+                    
+                    # Try to parse as JSON
                     try:
                         response_data = response.json()
                         logger.info(f"Success response: {response_data}")
@@ -514,12 +526,22 @@ class ExternalMeditationService:
                                 'response_data': response_data
                             }
                     except json.JSONDecodeError as json_error:
-                        logger.error(f"JSON decode error: {json_error}")
-                        logger.error(f"Response content: {response.text}")
-                        return {
-                            'success': False,
-                            'error': f'Invalid JSON response from external API: {str(json_error)}. Response was: {response.text[:200]}'
-                        }
+                        # Check if it might be binary data
+                        if response.content.startswith(b'ID3') or len(response.content) > 1000:
+                            logger.info("Received binary audio file (detected by content)")
+                            return {
+                                'success': True,
+                                'file_data': response.content,  # Return binary data
+                                'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                                'response_data': {'file_type': 'binary_audio'}
+                            }
+                        else:
+                            logger.error(f"JSON decode error: {json_error}")
+                            logger.error(f"Response content: {response.text[:200]}")
+                            return {
+                                'success': False,
+                                'error': f'Invalid JSON response from external API: {str(json_error)}. Response was: {response.text[:200]}'
+                            }
                 elif response.status_code == 422:
                     try:
                         error_detail = response.json().get('detail', 'Validation error')
@@ -616,13 +638,20 @@ class ExternalMeditationService:
             # If we have file data, save it
             if file_data and file_name:
                 try:
+                    # Check if file_data is binary data (from external API)
+                    if isinstance(file_data, bytes):
+                        logger.info(f"Saving binary audio file: {file_name}")
+                        content = ContentFile(file_data, name=file_name)
+                        meditation.file.save(file_name, content, save=True)
+                        logger.info(f"Successfully saved binary file: {file_name}")
                     # If file_data is a URL, download it
-                    if file_data.startswith('http'):
+                    elif isinstance(file_data, str) and file_data.startswith('http'):
+                        logger.info(f"Downloading file from URL: {file_data}")
                         file_response = requests.get(file_data, timeout=30)
                         if file_response.status_code == 200:
                             content = ContentFile(file_response.content, name=file_name)
                             meditation.file.save(file_name, content, save=True)
-                            logger.info(f"Successfully saved file: {file_name}")
+                            logger.info(f"Successfully saved file from URL: {file_name}")
                         else:
                             logger.warning(f"Failed to download file from {file_data}: HTTP {file_response.status_code}")
                     else:
