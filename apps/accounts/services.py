@@ -231,14 +231,39 @@ class ExternalMeditationService:
             
             if not api_response.get('success'):
                 print(f"❌ External API request failed: {api_response.get('error', 'Unknown error')}")
-                return {
-                    "success": False,
-                    "message": f"External API request failed: {api_response.get('error', 'Unknown error')}",
-                    "plan_type": ritual_type_name,
-                    "endpoint_used": api_endpoint,
-                    "api_response": api_response,
-                    "ritual_type_name": ritual_type_name
-                }
+                
+                # Check if it's a timeout or connection error - create meditation record anyway
+                if 'timeout' in api_response.get('error', '').lower() or 'connection' in api_response.get('error', '').lower():
+                    print(f"⚠️ External API unavailable, creating meditation record without file...")
+                    
+                    # Save the meditation file and create MeditationGenerate record without file
+                    meditation_record = self._save_meditation_file(
+                        user=user,
+                        ritual_type_name=ritual_type_name,
+                        file_data=None,
+                        file_name=None
+                    )
+                    
+                    return {
+                        "success": True,
+                        "message": "Meditation record created (external API unavailable)",
+                        "plan_type": ritual_type_name,
+                        "endpoint_used": api_endpoint,
+                        "api_response": api_response,
+                        "file_url": None,
+                        "meditation_id": meditation_record.id,
+                        "ritual_type_name": ritual_type_name,
+                        "warning": "External API was unavailable, meditation created without audio file"
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "message": f"External API request failed: {api_response.get('error', 'Unknown error')}",
+                        "plan_type": ritual_type_name,
+                        "endpoint_used": api_endpoint,
+                        "api_response": api_response,
+                        "ritual_type_name": ritual_type_name
+                    }
             
             # Save the meditation file and create MeditationGenerate record
             print(f"💾 Saving meditation file...")
@@ -365,7 +390,7 @@ class ExternalMeditationService:
                 api_endpoint,
                 json=data,
                 headers={'Content-Type': 'application/json'},
-                timeout=30  # 30 second timeout
+                timeout=10  # 10 second timeout for faster testing
             )
             
             print(f"📥 Response status: {response.status_code}")
