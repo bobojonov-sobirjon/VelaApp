@@ -1,14 +1,22 @@
 import requests
 import json
 import logging
+import time
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db import transaction
 from datetime import datetime
 import os
 from django.utils import timezone
+from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework import status
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
 from apps.accounts.models import RitualType, Rituals, MeditationGenerate
+from apps.accounts.serializers import ExternalMeditationSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -170,8 +178,8 @@ class ExternalMeditationService:
             'goals': 'goals',
             'dream': 'dreamlife',
             'happiness': 'dream_activities',
-            'age_range': 'age_range',  # Unique mapping for age_range
-            'gender': 'gender'  # Unique mapping for gender
+            'age_range': 'age_range',
+            'gender': 'name'  # Map gender to name to satisfy external API requirement
         }
     
     def process_meditation_request(self, user, validated_data):
@@ -329,7 +337,7 @@ class ExternalMeditationService:
                 logger.warning(f"Missing field {our_field} in validated data")
         
         # Validate required fields
-        required_fields = ['length', 'ritual_type', 'voice', 'tone', 'goals', 'dreamlife', 'dream_activities']
+        required_fields = ['length', 'ritual_type', 'voice', 'tone', 'goals', 'dreamlife', 'dream_activities', 'name']
         for field in required_fields:
             if field not in external_data:
                 logger.warning(f"Required field {field} missing in transformed data")
@@ -386,7 +394,7 @@ class ExternalMeditationService:
                     api_endpoint,
                     json=data,
                     headers={'Content-Type': 'application/json'},
-                    timeout=30  # Increased timeout to 30 seconds
+                    timeout=30
                 )
                 
                 logger.debug(f"Response status: {response.status_code}")
@@ -413,6 +421,13 @@ class ExternalMeditationService:
                             'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
                             'response_data': response_data
                         }
+                elif response.status_code == 422:
+                    error_detail = response.json().get('detail', 'Validation error')
+                    logger.error(f"HTTP 422 validation error: {error_detail}")
+                    return {
+                        'success': False,
+                        'error': f"HTTP 422: Validation error - {error_detail}"
+                    }
                 else:
                     logger.error(f"HTTP {response.status_code} error: {response.text}")
                     return {
@@ -471,10 +486,10 @@ class ExternalMeditationService:
             ritual = Rituals.objects.create(
                 name=f"{ritual_type_name} Meditation",
                 description=f"Generated meditation for {ritual_type_name}",
-                ritual_type='story',  # Default to story type
-                tone='dreamy',  # Default tone
-                voice='female',  # Default voice
-                duration='2'  # Default duration
+                ritual_type='story',
+                tone='dreamy',
+                voice='female',
+                duration='2'
             )
             
             # Create MeditationGenerate record
@@ -501,13 +516,73 @@ class ExternalMeditationService:
                         
                 except Exception as e:
                     logger.error(f"Error saving meditation file: {str(e)}")
-                    # Continue without file - meditation record is still created
             
             return meditation
             
         except Exception as e:
             logger.error(f"Error creating meditation record: {str(e)}")
             raise
+
+class ExternalMeditationAPIView(APIView):
+    permission_classes = [AllowAny]  # Temporarily allow any access for testing
+    
+    @swagger_auto_schema(
+        request_body=ExternalMeditationSerializer,
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    "success": openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                    "message": openapi.Schema(type=openapi.TYPE_STRING),
+                    "plan_type": openapi.Schema(type=openapi.TYPE_STRING, description="Name of the plan type used"),
+                    "api_response": openapi.Schema(type=openapi.TYPE_OBJECT),
+                    "endpoint_used": openapi.Schema(type=openapi.TYPE_STRING),
+                    "file_url": openapi.Schema(type=openapi.TYPE_STRING, description="URL to the saved meditation file"),
+                    "meditation_id": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID of the saved meditation record")
+                }
+            ),
+            400: "Bad Request: Invalid plan type or missing required fields",
+            500: "Internal Server Error: Unexpected error"
+        },
+        operation_description="Send meditation request to external API based on plan type ID. The plan_type field should be a valid RitualType ID that exists in the database. For choice fields, send keys instead of values: ritual_type ('story', 'guided_meditations'), tone ('dreamy', 'asmr'), voice ('male', 'female'), duration ('2', '5', '10'). The response includes the plan type name, saved file URL and meditation record ID.",
+        tags=['External Meditation API']
+    )
+    def post(self, request):
+        """
+        Send meditation request to external API based on plan type.
+        """
+        try:
+            # Validate input data using serializer
+            serializer = ExternalMeditationSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({
+                    "error": "Validation failed",
+                    "details": serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Process the meditation request using the service
+            meditation_service = ExternalMeditationService()
+            result = meditation_service.process_meditation_request(
+                user=request.user,
+                validated_data=serializer.validated_data
+            )
+            
+            # Return 400 for external API validation errors (HTTP 422)
+            if not result.get("success") and "HTTP 422" in result.get("message", ""):
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Return 200 if meditation record was created successfully
+            if result.get("meditation_id"):
+                return Response(result, status=status.HTTP_200_OK)
+            else:
+                return Response(result, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                
+        except Exception as e:
+            logger.error(f"Unexpected error in ExternalMeditationAPIView: {str(e)}", exc_info=True)
+            return Response({
+                "success": False,
+                "error": f"Unexpected error: {str(e)}"
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 
