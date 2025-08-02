@@ -1045,12 +1045,14 @@ class ExternalMeditationAPIView(APIView):
                 
         except UnicodeDecodeError as e:
             logger.error(f"Unicode decode error in ExternalMeditationAPIView: {str(e)}")
+            logger.error(f"Error details: position {e.start}, reason: {e.reason}")
             return Response({
                 "success": False,
                 "error": f"Encoding error: {str(e)}"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             logger.error(f"Unexpected error in ExternalMeditationAPIView: {str(e)}")
+            logger.error(f"Error type: {type(e).__name__}")
             return Response({
                 "success": False,
                 "error": f"Unexpected error: {str(e)}"
