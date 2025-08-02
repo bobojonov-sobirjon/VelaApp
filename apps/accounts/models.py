@@ -149,7 +149,7 @@ class Rituals(models.Model):
     ritual_type = models.CharField(
         max_length=50, 
         choices=RitualTypeChoices.choices, 
-        default=RitualTypeChoices.GUIDED_MEDITATIONS,
+        default=RitualTypeChoices.Guided,
         verbose_name=_("Ritual Type")
     )
     
