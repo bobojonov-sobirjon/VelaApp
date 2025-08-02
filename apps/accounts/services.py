@@ -171,7 +171,7 @@ class ExternalMeditationService:
             'dream': 'dreamlife',
             'happiness': 'dream_activities',
             'age_range': 'name',  # Using age_range as name for external API
-            'gender': 'check_in'  # Using gender as check_in for external API
+            'gender': 'name'  # Using gender as name for external API
         }
     
     def process_meditation_request(self, user, validated_data):
@@ -194,20 +194,22 @@ class ExternalMeditationService:
                 ritual_type = RitualType.objects.get(id=plan_type_id)
                 ritual_type_name = ritual_type.name
             except RitualType.DoesNotExist:
-                return {
-                    "success": False,
-                    "message": f"Plan type with ID {plan_type_id} does not exist",
-                    "plan_type": f"ID: {plan_type_id}"
-                }
+                            return {
+                "success": False,
+                "message": f"Plan type with ID {plan_type_id} does not exist",
+                "plan_type": f"ID: {plan_type_id}",
+                "ritual_type_name": None
+            }
             
             # Get the appropriate API endpoint based on ritual type name
             api_endpoint = self._get_api_endpoint(ritual_type_name)
             if not api_endpoint:
-                return {
-                    "success": False,
-                    "message": f"No API endpoint found for ritual type: {ritual_type_name}",
-                    "plan_type": ritual_type_name
-                }
+                            return {
+                "success": False,
+                "message": f"No API endpoint found for ritual type: {ritual_type_name}",
+                "plan_type": ritual_type_name,
+                "ritual_type_name": ritual_type_name
+            }
             
             # Transform data for external API
             external_api_data = self._transform_data_for_external_api(validated_data)
@@ -216,13 +218,14 @@ class ExternalMeditationService:
             api_response = self._make_external_api_request(api_endpoint, external_api_data)
             
             if not api_response.get('success'):
-                return {
-                    "success": False,
-                    "message": f"External API request failed: {api_response.get('error', 'Unknown error')}",
-                    "plan_type": ritual_type_name,
-                    "endpoint_used": api_endpoint,
-                    "api_response": api_response
-                }
+                            return {
+                "success": False,
+                "message": f"External API request failed: {api_response.get('error', 'Unknown error')}",
+                "plan_type": ritual_type_name,
+                "endpoint_used": api_endpoint,
+                "api_response": api_response,
+                "ritual_type_name": ritual_type_name
+            }
             
             # Save the meditation file and create MeditationGenerate record
             meditation_record = self._save_meditation_file(
@@ -239,7 +242,8 @@ class ExternalMeditationService:
                 "endpoint_used": api_endpoint,
                 "api_response": api_response,
                 "file_url": meditation_record.file.url if meditation_record.file else None,
-                "meditation_id": meditation_record.id
+                "meditation_id": meditation_record.id,
+                "ritual_type_name": ritual_type_name
             }
             
         except Exception as e:
@@ -247,7 +251,8 @@ class ExternalMeditationService:
             return {
                 "success": False,
                 "message": f"Internal server error: {str(e)}",
-                "plan_type": validated_data.get('plan_type', 'Unknown')
+                "plan_type": validated_data.get('plan_type', 'Unknown'),
+                "ritual_type_name": None
             }
     
     def _get_api_endpoint(self, ritual_type_name):
@@ -279,18 +284,27 @@ class ExternalMeditationService:
             if our_field in validated_data:
                 external_data[external_field] = validated_data[our_field]
         
-        # Handle special transformations
+        # Handle special transformations for external API format
         if 'ritual_type' in external_data:
             # Convert to proper case for external API
-            external_data['ritual_type'] = external_data['ritual_type'].title()
+            if external_data['ritual_type'] == 'story':
+                external_data['ritual_type'] = 'Story'
+            elif external_data['ritual_type'] == 'guided_meditations':
+                external_data['ritual_type'] = 'Guided'
         
         if 'tone' in external_data:
             # Convert to proper case for external API
-            external_data['tone'] = external_data['tone'].title()
+            if external_data['tone'] == 'dreamy':
+                external_data['tone'] = 'Dreamy'
+            elif external_data['tone'] == 'asmr':
+                external_data['tone'] = 'ASMR'
         
         if 'voice' in external_data:
             # Convert to proper case for external API
-            external_data['voice'] = external_data['voice'].title()
+            if external_data['voice'] == 'female':
+                external_data['voice'] = 'Female'
+            elif external_data['voice'] == 'male':
+                external_data['voice'] = 'Male'
         
         if 'length' in external_data:
             # Convert to integer for external API

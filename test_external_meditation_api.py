@@ -1,74 +1,81 @@
 #!/usr/bin/env python3
 """
-Test script for external meditation API integration
+Test script for External Meditation API
+Tests the API with the new request format
 """
-import os
-import sys
-import django
-from django.conf import settings
 
-# Add the project directory to Python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+import requests
+import json
 
-# Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-django.setup()
+# API endpoint
+API_URL = "http://localhost:8000/meditation/external/"
 
-from apps.accounts.services import ExternalMeditationService
-from apps.accounts.models import CustomUser, RitualType
+# Test data matching the new format
+test_data = {
+    "plan_type": 2,
+    "gender": "male",
+    "dream": "Wake up in a hammock enveloped within nature, with with a waterfall in the backgroundg",
+    "goals": "Enjoy life to the Fullest. Make vela an Editor's Choice Wellness app in the ApppStore",
+    "age_range": "25",
+    "happiness": "Adventure, Beauty, Nature, Creation. I feel most me when I'm building something that matters.",
+    "ritual_type": "story",
+    "tone": "dreamy",
+    "voice": "female",
+    "duration": "2"
+}
 
 def test_external_meditation_api():
-    """Test the external meditation API integration"""
-    
-    # Create a test user
-    user, created = CustomUser.objects.get_or_create(
-        username='test_user',
-        defaults={
-            'email': 'test@example.com',
-            'first_name': 'Test',
-            'last_name': 'User'
-        }
-    )
-    
-    # Test data
-    test_data = {
-        "plan_type": "Morning Spark",
-        "gender": "male",
-        "dream": "Wake up in a hammock enveloped within nature, with a waterfall in the background",
-        "goals": "Enjoy life to the Fullest. Make vela an Editor's Choice Wellness app in the AppStore",
-        "age_range": "25",
-        "happiness": "Adventure, Beauty, Nature, Creation. I feel most me when I'm building something that matters.",
-        "ritual_type": "story",
-        "tone": "dreamy",
-        "voice": "female",
-        "duration": "2"
-    }
-    
-    # Initialize service
-    service = ExternalMeditationService()
-    
-    print("Testing external meditation API integration...")
-    print(f"Test data: {test_data}")
-    print(f"External API enabled: {getattr(settings, 'MEDITATION_API_CONFIG', {}).get('ENABLED', True)}")
+    """Test the external meditation API"""
+    print("Testing External Meditation API...")
+    print(f"Request URL: {API_URL}")
+    print(f"Request Data: {json.dumps(test_data, indent=2)}")
+    print("-" * 50)
     
     try:
-        # Process meditation request
-        result = service.process_meditation_request(user, test_data)
+        # Make the request
+        response = requests.post(
+            API_URL,
+            json=test_data,
+            headers={'Content-Type': 'application/json'},
+            timeout=60
+        )
         
-        print(f"\nResult: {result}")
+        print(f"Response Status: {response.status_code}")
+        print(f"Response Headers: {dict(response.headers)}")
         
-        if result.get('success'):
-            print("✅ Test passed - Meditation record created successfully")
+        if response.status_code == 200:
+            response_data = response.json()
+            print("✅ Success!")
+            print(f"Response Data: {json.dumps(response_data, indent=2)}")
+            
+            # Check for required fields
+            required_fields = ['success', 'message', 'plan_type', 'ritual_type_name']
+            for field in required_fields:
+                if field in response_data:
+                    print(f"✅ {field}: {response_data[field]}")
+                else:
+                    print(f"❌ Missing field: {field}")
+            
+            # Check for file URL
+            if 'file_url' in response_data and response_data['file_url']:
+                print(f"✅ File URL: {response_data['file_url']}")
+            else:
+                print("⚠️ No file URL in response")
+                
+            # Check for meditation ID
+            if 'meditation_id' in response_data:
+                print(f"✅ Meditation ID: {response_data['meditation_id']}")
+            else:
+                print("❌ Missing meditation_id")
+                
         else:
-            print(f"⚠️ Test completed with fallback - {result.get('error', 'Unknown error')}")
+            print("❌ Request failed!")
+            print(f"Error Response: {response.text}")
             
-        if result.get('fallback_used'):
-            print("ℹ️ Fallback mechanism was used (external API unavailable)")
-            
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Request error: {e}")
     except Exception as e:
-        print(f"❌ Test failed with exception: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"❌ Unexpected error: {e}")
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     test_external_meditation_api() 
