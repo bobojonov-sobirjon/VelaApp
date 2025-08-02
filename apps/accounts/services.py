@@ -344,40 +344,86 @@ class ExternalMeditationService:
                 
                 # Build the full URL for the file
                 file_url = None
-                if meditation_record.file:
-                    from django.conf import settings
-                    # Get the base URL from settings or construct it
-                    base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
-                    file_url = f"{base_url}{meditation_record.file.url}"
+                try:
+                    if meditation_record.file:
+                        from django.conf import settings
+                        # Get the base URL from settings or construct it
+                        base_url = getattr(settings, 'BASE_URL', 'http://localhost:8000')
+                        file_url = f"{base_url}{meditation_record.file.url}"
+                        logger.debug(f"Generated file URL: {file_url}")
+                except Exception as url_error:
+                    logger.warning(f"Error generating file URL: {str(url_error)}")
+                    file_url = None
+                
+                # Prepare safe api_response for serialization
+                safe_api_response = None
+                try:
+                    if api_response:
+                        # Create a safe copy without binary data
+                        safe_api_response = {
+                            'success': api_response.get('success'),
+                            'file_name': api_response.get('file_name'),
+                            'response_data': api_response.get('response_data'),
+                            'error': api_response.get('error')
+                        }
+                except Exception as serialize_error:
+                    logger.warning(f"Error serializing api_response: {str(serialize_error)}")
+                    safe_api_response = {'error': 'Could not serialize response'}
                 
                 return {
                     "success": True,
                     "message": "Meditation generated successfully",
                     "plan_type": ritual_type_name,
                     "endpoint_used": api_endpoint,
-                    "api_response": api_response,
+                    "api_response": safe_api_response,
                     "file_url": file_url,
                     "meditation_id": meditation_record.id,
                     "ritual_type_name": ritual_type_name
                 }
             except UnicodeDecodeError as e:
                 logger.error(f"Unicode decode error saving meditation: {str(e)}")
+                # Prepare safe api_response for serialization
+                safe_api_response = None
+                try:
+                    if api_response:
+                        safe_api_response = {
+                            'success': api_response.get('success'),
+                            'file_name': api_response.get('file_name'),
+                            'response_data': api_response.get('response_data'),
+                            'error': api_response.get('error')
+                        }
+                except Exception:
+                    safe_api_response = {'error': 'Could not serialize response'}
+                
                 return {
                     "success": False,
                     "message": f"Encoding error saving meditation: {str(e)}",
                     "plan_type": ritual_type_name,
                     "endpoint_used": api_endpoint,
-                    "api_response": api_response,
+                    "api_response": safe_api_response,
                     "ritual_type_name": ritual_type_name
                 }
             except Exception as save_error:
                 logger.error(f"Error saving meditation file: {str(save_error)}")
+                # Prepare safe api_response for serialization
+                safe_api_response = None
+                try:
+                    if api_response:
+                        safe_api_response = {
+                            'success': api_response.get('success'),
+                            'file_name': api_response.get('file_name'),
+                            'response_data': api_response.get('response_data'),
+                            'error': api_response.get('error')
+                        }
+                except Exception:
+                    safe_api_response = {'error': 'Could not serialize response'}
+                
                 return {
                     "success": False,
                     "message": f"Error saving meditation file: {str(save_error)}",
                     "plan_type": ritual_type_name,
                     "endpoint_used": api_endpoint,
-                    "api_response": api_response,
+                    "api_response": safe_api_response,
                     "ritual_type_name": ritual_type_name
                 }
             
