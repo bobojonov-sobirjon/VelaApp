@@ -839,6 +839,7 @@ class ExternalMeditationService:
                             meditation.file.save(file_name, content, save=True)
                         except Exception as save_error:
                             # Continue without the file
+                            pass
                     # If file_data is a URL, download it
                     elif isinstance(file_data, str) and file_data.startswith('http'):
                         try:
@@ -852,9 +853,9 @@ class ExternalMeditationService:
                                         meditation.file.save(file_name, content, save=True)
                                     except Exception as save_error:
                                         # Continue without the file
+                                        pass
                         except Exception as e:
                             pass
-                        
                 except UnicodeDecodeError as e:
                     # This might happen if binary data is being treated as text somewhere
                     pass
