@@ -626,7 +626,7 @@ class ExternalMeditationSerializer(serializers.Serializer):
     
     # Choice mappings for converting keys to values
     RITUAL_TYPE_CHOICES = {
-        'guided_meditations': 'guided_meditations',
+        'guided': 'guided',
         'story': 'story'
     }
     
@@ -652,7 +652,7 @@ class ExternalMeditationSerializer(serializers.Serializer):
     goals = serializers.CharField(required=True, help_text="User's goals")
     age_range = serializers.CharField(required=True, help_text="User's age range")
     happiness = serializers.CharField(required=True, help_text="User's happiness level")
-    ritual_type = serializers.CharField(required=True, help_text="Ritual type key (e.g., 'story', 'guided_meditations')")
+    ritual_type = serializers.CharField(required=True, help_text="Ritual type key (e.g., 'story', 'guided')")
     tone = serializers.CharField(required=True, help_text="Tone key (e.g., 'dreamy', 'asmr')")
     voice = serializers.CharField(required=True, help_text="Voice key (e.g., 'male', 'female')")
     duration = serializers.CharField(required=True, help_text="Duration key (e.g., '2', '5', '10')")
