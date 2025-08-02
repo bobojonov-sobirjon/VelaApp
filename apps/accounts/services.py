@@ -267,7 +267,7 @@ class ExternalMeditationService:
             # Make request to external API with retries
             logger.info("Making request to external API...")
             try:
-                api_response = self._make_external_api_request(api_endpoint, external_api_data)
+                api_response = self._make_external_api_request(api_endpoint, external_api_data, ritual_type_name)
                 logger.debug(f"External API response: {api_response}")
             except UnicodeDecodeError as e:
                 logger.error(f"Unicode decode error in API request: {str(e)}")
@@ -317,24 +317,30 @@ class ExternalMeditationService:
             
             # Save the meditation file and create MeditationGenerate record
             logger.info("Saving meditation file...")
+            
+            # Safety check for api_response
+            if api_response is None:
+                logger.error("api_response is None, cannot save meditation file")
+                return {
+                    "success": False,
+                    "message": "Internal error: API response is None",
+                    "plan_type": ritual_type_name,
+                    "endpoint_used": api_endpoint,
+                    "ritual_type_name": ritual_type_name
+                }
+            
             try:
+                # Create filename using ritual type name
+                safe_ritual_name = ritual_type_name.replace(' ', '_').lower()
+                default_filename = f"{safe_ritual_name}_{int(timezone.now().timestamp())}.mp3"
+                
                 meditation_record = self._save_meditation_file(
                     user=user,
                     ritual_type_name=ritual_type_name,
-                    file_data=api_response.get('file_data'),
-                    file_name=api_response.get('file_name', f"meditation_{int(timezone.now().timestamp())}.mp3")
+                    file_data=api_response.get('file_data') if api_response else None,
+                    file_name=api_response.get('file_name', default_filename) if api_response else default_filename
                 )
                 logger.info(f"Meditation record created with ID: {meditation_record.id}")
-            except UnicodeDecodeError as e:
-                logger.error(f"Unicode decode error saving meditation: {str(e)}")
-                return {
-                    "success": False,
-                    "message": f"Encoding error saving meditation: {str(e)}",
-                    "plan_type": ritual_type_name,
-                    "endpoint_used": api_endpoint,
-                    "api_response": api_response,
-                    "ritual_type_name": ritual_type_name
-                }
                 
                 # Build the full URL for the file
                 file_url = None
@@ -354,11 +360,11 @@ class ExternalMeditationService:
                     "meditation_id": meditation_record.id,
                     "ritual_type_name": ritual_type_name
                 }
-            except UnicodeDecodeError as save_error:
-                logger.error(f"Unicode decode error saving meditation: {str(save_error)}")
+            except UnicodeDecodeError as e:
+                logger.error(f"Unicode decode error saving meditation: {str(e)}")
                 return {
                     "success": False,
-                    "message": f"Encoding error saving meditation: {str(save_error)}",
+                    "message": f"Encoding error saving meditation: {str(e)}",
                     "plan_type": ritual_type_name,
                     "endpoint_used": api_endpoint,
                     "api_response": api_response,
@@ -505,19 +511,25 @@ class ExternalMeditationService:
             logger.error(f"Error testing API connectivity: {str(e)}")
             return False
 
-    def _make_external_api_request(self, api_endpoint, data):
+    def _make_external_api_request(self, api_endpoint, data, ritual_type_name):
         """
         Make HTTP request to external API with retry logic.
         
         Args:
             api_endpoint: The API endpoint URL.
             data: Data to send to the API.
+            ritual_type_name: Name of the ritual type for filename generation.
             
         Returns:
             dict: Response from external API.
         """
         max_retries = 3
         retry_delay = 2  # seconds
+        
+        # Helper function to create filename with ritual type name
+        def create_filename():
+            safe_ritual_name = ritual_type_name.replace(' ', '_').lower()
+            return f"{safe_ritual_name}_{int(timezone.now().timestamp())}.mp3"
         
         for attempt in range(max_retries):
             try:
@@ -579,7 +591,7 @@ class ExternalMeditationService:
                         return {
                             'success': True,
                             'file_data': response.content,  # Return binary data
-                            'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                            'file_name': create_filename(),
                             'response_data': {'file_type': 'binary_audio'}
                         }
                 
@@ -609,7 +621,7 @@ class ExternalMeditationService:
                         return {
                             'success': True,
                             'file_data': response.content,  # Return binary data
-                            'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                            'file_name': create_filename(),
                             'response_data': {'file_type': 'binary_audio'}
                         }
                     
@@ -630,7 +642,7 @@ class ExternalMeditationService:
                                     return {
                                         'success': True,
                                         'file_data': response.content,  # Return binary data
-                                        'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                                        'file_name': create_filename(),
                                         'response_data': {'file_type': 'binary_audio'}
                                     }
                                 else:
@@ -649,7 +661,7 @@ class ExternalMeditationService:
                                     return {
                                         'success': True,
                                         'file_data': response.content,  # Return binary data
-                                        'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                                        'file_name': create_filename(),
                                         'response_data': {'file_type': 'binary_audio'}
                                     }
                                 else:
@@ -664,7 +676,7 @@ class ExternalMeditationService:
                                 return {
                                     'success': True,
                                     'file_data': response.content,  # Return binary data
-                                    'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                                    'file_name': create_filename(),
                                     'response_data': {'file_type': 'binary_audio'}
                                 }
                             else:
@@ -690,7 +702,7 @@ class ExternalMeditationService:
                             return {
                                 'success': True,
                                 'file_data': None,
-                                'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                                'file_name': create_filename(),
                                 'response_data': response_data
                             }
                     except json.JSONDecodeError as json_error:
@@ -704,7 +716,7 @@ class ExternalMeditationService:
                             return {
                                 'success': True,
                                 'file_data': response.content,  # Return binary data
-                                'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                                'file_name': create_filename(),
                                 'response_data': {'file_type': 'binary_audio'}
                             }
                         else:
@@ -724,7 +736,7 @@ class ExternalMeditationService:
                             return {
                                 'success': True,
                                 'file_data': response.content,  # Return binary data
-                                'file_name': f"meditation_{int(timezone.now().timestamp())}.mp3",
+                                'file_name': create_filename(),
                                 'response_data': {'file_type': 'binary_audio'}
                             }
                         else:
