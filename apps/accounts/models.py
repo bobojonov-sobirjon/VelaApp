@@ -127,7 +127,7 @@ class UserCheckIn(models.Model):
 class Rituals(models.Model):
     
     class RitualTypeChoices(models.TextChoices):
-        GUIDED_MEDITATIONS = 'guided_meditations', _('Guided meditations')
+        Guided = 'guided', _('Guided')
         Story = 'story', _('Story')
     
     class ToneChoices(models.TextChoices):
