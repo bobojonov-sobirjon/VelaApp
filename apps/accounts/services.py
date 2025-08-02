@@ -538,7 +538,7 @@ class ExternalMeditationService:
                     api_endpoint,
                     json=data,
                     headers=headers,
-                    timeout=60  # Increased from 30 to 60 seconds
+                    timeout=300  # Increased from 30 to 60 seconds
                 )
                 
                 # Early detection of binary data - if we see binary markers, treat as binary immediately
