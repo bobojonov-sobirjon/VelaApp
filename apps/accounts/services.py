@@ -299,24 +299,35 @@ class ExternalMeditationService:
             
             # Save the meditation file and create MeditationGenerate record
             logger.info("Saving meditation file...")
-            meditation_record = self._save_meditation_file(
-                user=user,
-                ritual_type_name=ritual_type_name,
-                file_data=api_response.get('file_data'),
-                file_name=api_response.get('file_name', f"meditation_{int(timezone.now().timestamp())}.mp3")
-            )
-            logger.info(f"Meditation record created with ID: {meditation_record.id}")
-            
-            return {
-                "success": True,
-                "message": "Meditation generated successfully",
-                "plan_type": ritual_type_name,
-                "endpoint_used": api_endpoint,
-                "api_response": api_response,
-                "file_url": meditation_record.file.url if meditation_record.file else None,
-                "meditation_id": meditation_record.id,
-                "ritual_type_name": ritual_type_name
-            }
+            try:
+                meditation_record = self._save_meditation_file(
+                    user=user,
+                    ritual_type_name=ritual_type_name,
+                    file_data=api_response.get('file_data'),
+                    file_name=api_response.get('file_name', f"meditation_{int(timezone.now().timestamp())}.mp3")
+                )
+                logger.info(f"Meditation record created with ID: {meditation_record.id}")
+                
+                return {
+                    "success": True,
+                    "message": "Meditation generated successfully",
+                    "plan_type": ritual_type_name,
+                    "endpoint_used": api_endpoint,
+                    "api_response": api_response,
+                    "file_url": meditation_record.file.url if meditation_record.file else None,
+                    "meditation_id": meditation_record.id,
+                    "ritual_type_name": ritual_type_name
+                }
+            except Exception as save_error:
+                logger.error(f"Error saving meditation file: {str(save_error)}")
+                return {
+                    "success": False,
+                    "message": f"Error saving meditation file: {str(save_error)}",
+                    "plan_type": ritual_type_name,
+                    "endpoint_used": api_endpoint,
+                    "api_response": api_response,
+                    "ritual_type_name": ritual_type_name
+                }
             
         except Exception as e:
             logger.error(f"Exception in ExternalMeditationService.process_meditation_request: {str(e)}", exc_info=True)
@@ -537,10 +548,15 @@ class ExternalMeditationService:
                             }
                         else:
                             logger.error(f"JSON decode error: {json_error}")
-                            logger.error(f"Response content: {response.text[:200]}")
+                            # Safely log response content (avoid UTF-8 issues with binary data)
+                            try:
+                                response_text = response.text[:200]
+                                logger.error(f"Response content: {response_text}")
+                            except UnicodeDecodeError:
+                                logger.error(f"Response content: [Binary data - cannot decode as text]")
                             return {
                                 'success': False,
-                                'error': f'Invalid JSON response from external API: {str(json_error)}. Response was: {response.text[:200]}'
+                                'error': f'Invalid JSON response from external API: {str(json_error)}'
                             }
                 elif response.status_code == 422:
                     try:
@@ -551,16 +567,21 @@ class ExternalMeditationService:
                             'error': f"HTTP 422: Validation error - {error_detail}"
                         }
                     except json.JSONDecodeError:
-                        logger.error(f"HTTP 422 with invalid JSON: {response.text}")
+                        logger.error(f"HTTP 422 with invalid JSON: [Binary data - cannot decode as text]")
                         return {
                             'success': False,
                             'error': f"HTTP 422: Validation error - Invalid JSON response"
                         }
                 else:
-                    logger.error(f"HTTP {response.status_code} error: {response.text}")
+                    # Safely log error response
+                    try:
+                        error_text = response.text
+                        logger.error(f"HTTP {response.status_code} error: {error_text}")
+                    except UnicodeDecodeError:
+                        logger.error(f"HTTP {response.status_code} error: [Binary data - cannot decode as text]")
                     return {
                         'success': False,
-                        'error': f"HTTP {response.status_code}: {response.text}"
+                        'error': f"HTTP {response.status_code}: [Binary response]"
                     }
                     
             except requests.exceptions.Timeout:
