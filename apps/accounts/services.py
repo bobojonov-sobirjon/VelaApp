@@ -228,6 +228,30 @@ class ExternalMeditationService:
                     "ritual_type_name": ritual_type_name
                 }
             
+            # Test API connectivity first
+            if not self._test_api_connectivity(api_endpoint):
+                logger.warning("External API is not reachable, creating meditation record without file...")
+                
+                # Save the meditation record without file
+                meditation_record = self._save_meditation_file(
+                    user=user,
+                    ritual_type_name=ritual_type_name,
+                    file_data=None,
+                    file_name=None
+                )
+                
+                return {
+                    "success": True,
+                    "message": "Meditation record created (external API unavailable)",
+                    "plan_type": ritual_type_name,
+                    "endpoint_used": api_endpoint,
+                    "api_response": {"error": "API not reachable"},
+                    "file_url": None,
+                    "meditation_id": meditation_record.id,
+                    "ritual_type_name": ritual_type_name,
+                    "warning": "External API was unavailable, meditation created without audio file"
+                }
+            
             # Transform data for external API
             external_api_data = self._transform_data_for_external_api(validated_data)
             logger.debug(f"Transformed data for external API: {external_api_data}")
@@ -381,6 +405,40 @@ class ExternalMeditationService:
         logger.info(f"Final transformed data: {external_data}")
         return external_data
     
+    def _test_api_connectivity(self, api_endpoint):
+        """
+        Test basic connectivity to the external API endpoint.
+        
+        Args:
+            api_endpoint: The API endpoint URL.
+            
+        Returns:
+            bool: True if API is reachable, False otherwise.
+        """
+        try:
+            logger.info(f"Testing connectivity to: {api_endpoint}")
+            
+            # Try a simple GET request to see if the server is reachable
+            response = requests.get(api_endpoint, timeout=10)
+            logger.info(f"Connectivity test response: {response.status_code}")
+            
+            if response.status_code in [200, 404, 405, 422]:  # Any response means server is reachable
+                logger.info("External API is reachable")
+                return True
+            else:
+                logger.warning(f"External API returned unexpected status: {response.status_code}")
+                return False
+                
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection error testing API: {str(e)}")
+            return False
+        except requests.exceptions.Timeout as e:
+            logger.error(f"Timeout testing API: {str(e)}")
+            return False
+        except Exception as e:
+            logger.error(f"Error testing API connectivity: {str(e)}")
+            return False
+
     def _make_external_api_request(self, api_endpoint, data):
         """
         Make HTTP request to external API with retry logic.
@@ -421,7 +479,8 @@ class ExternalMeditationService:
                 
                 logger.debug(f"Response status: {response.status_code}")
                 logger.debug(f"Response headers: {dict(response.headers)}")
-                logger.debug(f"Response content: {response.text[:500]}...")  # Log first 500 chars
+                logger.debug(f"Response content length: {len(response.text)}")
+                logger.debug(f"Response content: {response.text[:1000]}...")  # Log first 1000 chars
                 
                 if response.status_code == 200:
                     # Check if response has content
@@ -429,7 +488,7 @@ class ExternalMeditationService:
                         logger.warning("Empty response from external API")
                         return {
                             'success': False,
-                            'error': 'Empty response from external API'
+                            'error': 'Empty response from external API - server returned no content'
                         }
                     
                     try:
@@ -459,7 +518,7 @@ class ExternalMeditationService:
                         logger.error(f"Response content: {response.text}")
                         return {
                             'success': False,
-                            'error': f'Invalid JSON response from external API: {str(json_error)}'
+                            'error': f'Invalid JSON response from external API: {str(json_error)}. Response was: {response.text[:200]}'
                         }
                 elif response.status_code == 422:
                     try:
