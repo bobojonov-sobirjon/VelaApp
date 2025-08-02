@@ -193,10 +193,10 @@ class ExternalMeditationService:
         Returns:
             dict: Response with success status, message, and file details.
         """
-        logger.info("Starting ExternalMeditationService.process_meditation_request")
-        logger.debug(f"Validated data: {validated_data}")
-        
         try:
+            logger.info("Starting ExternalMeditationService.process_meditation_request")
+            logger.debug(f"Validated data: {validated_data}")
+            
             # Get plan type from validated data
             plan_type_id = validated_data.get('plan_type')
             logger.debug(f"Plan type ID: {plan_type_id}")
@@ -329,6 +329,14 @@ class ExternalMeditationService:
                     "ritual_type_name": ritual_type_name
                 }
             
+        except UnicodeDecodeError as e:
+            logger.error(f"Unicode decode error in process_meditation_request: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Encoding error: {str(e)}",
+                "plan_type": validated_data.get('plan_type', 'Unknown'),
+                "ritual_type_name": None
+            }
         except Exception as e:
             logger.error(f"Exception in ExternalMeditationService.process_meditation_request: {str(e)}", exc_info=True)
             return {
@@ -502,9 +510,16 @@ class ExternalMeditationService:
                             'error': 'Empty response from external API - server returned no content'
                         }
                     
-                    # Check if response is binary (MP3 file)
+                    # Check if response is binary (MP3 file) - do this first to avoid UTF-8 issues
                     content_type = response.headers.get('content-type', '').lower()
-                    if 'audio' in content_type or 'mpeg' in content_type or response.content.startswith(b'ID3'):
+                    is_binary = (
+                        'audio' in content_type or 
+                        'mpeg' in content_type or 
+                        response.content.startswith(b'ID3') or
+                        len(response.content) > 1000
+                    )
+                    
+                    if is_binary:
                         logger.info("Received binary audio file from external API")
                         return {
                             'success': True,
@@ -513,7 +528,7 @@ class ExternalMeditationService:
                             'response_data': {'file_type': 'binary_audio'}
                         }
                     
-                    # Try to parse as JSON
+                    # Only try to parse as JSON if it's not binary
                     try:
                         response_data = response.json()
                         logger.info(f"Success response: {response_data}")
@@ -537,7 +552,7 @@ class ExternalMeditationService:
                                 'response_data': response_data
                             }
                     except json.JSONDecodeError as json_error:
-                        # Check if it might be binary data
+                        # If JSON parsing fails, check if it might be binary data
                         if response.content.startswith(b'ID3') or len(response.content) > 1000:
                             logger.info("Received binary audio file (detected by content)")
                             return {
@@ -548,12 +563,6 @@ class ExternalMeditationService:
                             }
                         else:
                             logger.error(f"JSON decode error: {json_error}")
-                            # Safely log response content (avoid UTF-8 issues with binary data)
-                            try:
-                                response_text = response.text[:200]
-                                logger.error(f"Response content: {response_text}")
-                            except UnicodeDecodeError:
-                                logger.error(f"Response content: [Binary data - cannot decode as text]")
                             return {
                                 'success': False,
                                 'error': f'Invalid JSON response from external API: {str(json_error)}'
@@ -566,11 +575,11 @@ class ExternalMeditationService:
                             'success': False,
                             'error': f"HTTP 422: Validation error - {error_detail}"
                         }
-                    except json.JSONDecodeError:
-                        logger.error(f"HTTP 422 with invalid JSON: [Binary data - cannot decode as text]")
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        logger.error(f"HTTP 422 with invalid response")
                         return {
                             'success': False,
-                            'error': f"HTTP 422: Validation error - Invalid JSON response"
+                            'error': f"HTTP 422: Validation error - Invalid response"
                         }
                 else:
                     # Safely log error response
@@ -578,7 +587,7 @@ class ExternalMeditationService:
                         error_text = response.text
                         logger.error(f"HTTP {response.status_code} error: {error_text}")
                     except UnicodeDecodeError:
-                        logger.error(f"HTTP {response.status_code} error: [Binary data - cannot decode as text]")
+                        logger.error(f"HTTP {response.status_code} error: [Binary response]")
                     return {
                         'success': False,
                         'error': f"HTTP {response.status_code}: [Binary response]"
