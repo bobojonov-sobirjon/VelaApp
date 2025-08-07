@@ -710,3 +710,155 @@ class ExternalMeditationSerializer(serializers.Serializer):
         return self.DURATION_CHOICES[value]
 
 
+class ExternalMeditationWithUserCheckSerializer(serializers.Serializer):
+    """
+    Serializer for external meditation API requests with user check
+    
+    This serializer checks if the user exists in MeditationGenerate model:
+    - If user exists: only plan_type, ritual_type, tone, voice, duration are required
+    - If user doesn't exist: all fields are required (gender, dream, goals, age_range, happiness, plan_type, ritual_type, tone, voice, duration)
+    
+    The plan_type field accepts a RitualType ID and validates that it exists.
+    The validation method returns the ritual type name which is used to determine
+    the appropriate external API endpoint.
+    
+    For choice fields, send the key instead of the value:
+    - ritual_type: 'story' (not 'Story')
+    - tone: 'dreamy' (not 'Dreamy') 
+    - voice: 'female' (not 'Female')
+    - duration: '10' (not 10)
+    """
+    
+    # Choice mappings for converting keys to values
+    RITUAL_TYPE_CHOICES = {
+        'guided': 'guided',
+        'story': 'story'
+    }
+    
+    TONE_CHOICES = {
+        'dreamy': 'dreamy',
+        'asmr': 'asmr'
+    }
+    
+    VOICE_CHOICES = {
+        'male': 'male',
+        'female': 'female'
+    }
+    
+    DURATION_CHOICES = {
+        '2': '2',
+        '5': '5', 
+        '10': '10'
+    }
+    
+    # Always required fields
+    plan_type = serializers.IntegerField(required=True, help_text="Plan type ID to determine API endpoint")
+    ritual_type = serializers.CharField(required=True, help_text="Ritual type key (e.g., 'story', 'guided')")
+    tone = serializers.CharField(required=True, help_text="Tone key (e.g., 'dreamy', 'asmr')")
+    voice = serializers.CharField(required=True, help_text="Voice key (e.g., 'male', 'female')")
+    duration = serializers.CharField(required=True, help_text="Duration key (e.g., '2', '5', '10')")
+    
+    # Conditionally required fields (only if user doesn't exist in MeditationGenerate)
+    gender = serializers.CharField(required=False, help_text="User's gender")
+    dream = serializers.CharField(required=False, help_text="User's dream")
+    goals = serializers.CharField(required=False, help_text="User's goals")
+    age_range = serializers.CharField(required=False, help_text="User's age range")
+    happiness = serializers.CharField(required=False, help_text="User's happiness level")
+    
+    def validate_plan_type(self, value):
+        """
+        Validate that the plan type ID exists in RitualType model
+        """
+        try:
+            ritual_type = RitualType.objects.get(id=value)
+            return value  # Return the ID, not the name
+        except RitualType.DoesNotExist:
+            raise serializers.ValidationError(
+                f"Plan type with ID {value} does not exist."
+            )
+    
+    def validate_ritual_type(self, value):
+        """
+        Validate ritual_type key and convert to value
+        """
+        if value not in self.RITUAL_TYPE_CHOICES:
+            raise serializers.ValidationError(
+                f"Invalid ritual_type key: {value}. Valid keys are: {list(self.RITUAL_TYPE_CHOICES.keys())}"
+            )
+        return self.RITUAL_TYPE_CHOICES[value]
+    
+    def validate_tone(self, value):
+        """
+        Validate tone key and convert to value
+        """
+        if value not in self.TONE_CHOICES:
+            raise serializers.ValidationError(
+                f"Invalid tone key: {value}. Valid keys are: {list(self.TONE_CHOICES.keys())}"
+            )
+        return self.TONE_CHOICES[value]
+    
+    def validate_voice(self, value):
+        """
+        Validate voice key and convert to value
+        """
+        if value not in self.VOICE_CHOICES:
+            raise serializers.ValidationError(
+                f"Invalid voice key: {value}. Valid keys are: {list(self.VOICE_CHOICES.keys())}"
+            )
+        return self.VOICE_CHOICES[value]
+    
+    def validate_duration(self, value):
+        """
+        Validate duration key and convert to value
+        """
+        if value not in self.DURATION_CHOICES:
+            raise serializers.ValidationError(
+                f"Invalid duration key: {value}. Valid keys are: {list(self.DURATION_CHOICES.keys())}"
+            )
+        return self.DURATION_CHOICES[value]
+    
+    def validate(self, data):
+        """
+        Custom validation to check if user exists in MeditationGenerate
+        and adjust required fields accordingly
+        """
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            raise serializers.ValidationError("User must be authenticated")
+        
+        # Check if user exists in MeditationGenerate
+        user_exists_in_meditation = MeditationGenerate.objects.filter(user=request.user).exists()
+        
+        if not user_exists_in_meditation:
+            # If user doesn't exist in MeditationGenerate, all fields are required
+            required_fields = ['gender', 'dream', 'goals', 'age_range', 'happiness']
+            errors = {}
+            for field in required_fields:
+                if not data.get(field):
+                    errors[field] = f"{field} is required when user is not found in MeditationGenerate"
+            
+            if errors:
+                raise serializers.ValidationError(errors)
+        else:
+            # If user exists in MeditationGenerate, get values from CustomUserDetail
+            try:
+                user_detail = CustomUserDetail.objects.get(user=request.user)
+                # Populate missing fields from user detail
+                if not data.get('gender'):
+                    data['gender'] = user_detail.gender
+                if not data.get('dream'):
+                    data['dream'] = user_detail.dream
+                if not data.get('goals'):
+                    data['goals'] = user_detail.goals
+                if not data.get('age_range'):
+                    data['age_range'] = user_detail.age_range
+                if not data.get('happiness'):
+                    data['happiness'] = user_detail.happiness
+            except CustomUserDetail.DoesNotExist:
+                raise serializers.ValidationError(
+                    "User detail not found. Please provide all required fields."
+                )
+        
+        return data
+
+

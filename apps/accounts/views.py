@@ -25,10 +25,10 @@ from apps.accounts.serializers import (
 	PasswordUpdateSerializer, PlanSerializer, CombinedProfileSerializer,
 	UserCheckInSerializer, MeditationGenerateListSerializer, MeditationLibraryListSerializer, RitualTypeListSerializer,
 	UserLifeVisionSerializer, UserLifeVisionListSerializer, UserLifeVisionCreateSerializer, UserLifeVisionUpdateSerializer,
-	ExternalMeditationSerializer
+	ExternalMeditationSerializer, ExternalMeditationWithUserCheckSerializer
 )
 from apps.accounts.services import GoogleLoginService, FacebookLoginService, ExternalMeditationService
-from apps.accounts.models import LikeMeditation, Plans, MeditationGenerate, MeditationLibrary, UserPlan, UserLifeVision
+from apps.accounts.models import LikeMeditation, Plans, MeditationGenerate, MeditationLibrary, UserPlan, UserLifeVision, CustomUserDetail
 
 User = get_user_model()
 
@@ -994,10 +994,10 @@ class UserLifeVisionStatsView(APIView):
 
 
 class ExternalMeditationAPIView(APIView):
-    permission_classes = [AllowAny]  # Temporarily allow any access for testing
+    permission_classes = [IsAuthenticated]  # Changed to require authentication
     
     @swagger_auto_schema(
-        request_body=ExternalMeditationSerializer,
+        request_body=ExternalMeditationWithUserCheckSerializer,
         responses={
             200: openapi.Schema(
                 type=openapi.TYPE_OBJECT,
@@ -1008,26 +1008,35 @@ class ExternalMeditationAPIView(APIView):
                     "api_response": openapi.Schema(type=openapi.TYPE_OBJECT),
                     "endpoint_used": openapi.Schema(type=openapi.TYPE_STRING),
                     "file_url": openapi.Schema(type=openapi.TYPE_STRING, description="URL to the saved meditation file"),
-                    "meditation_id": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID of the saved meditation record")
+                    "meditation_id": openapi.Schema(type=openapi.TYPE_INTEGER, description="ID of the saved meditation record"),
+                    "user_exists_in_meditation": openapi.Schema(type=openapi.TYPE_BOOLEAN, description="Whether user exists in MeditationGenerate model")
                 }
             ),
             400: "Bad Request: Invalid plan type or missing required fields",
+            401: "Unauthorized: User must be authenticated",
             500: "Internal Server Error: API request failed"
         },
-        operation_description="Send meditation request to external API based on plan type ID. The plan_type field should be a valid RitualType ID that exists in the database. For choice fields, send keys instead of values: ritual_type ('story', 'guided_meditations'), tone ('dreamy', 'asmr'), voice ('male', 'female'), duration ('2', '5', '10'). The response includes the plan type name, saved file URL and meditation record ID.",
+        operation_description="Send meditation request to external API based on plan type ID. This endpoint checks if the user exists in MeditationGenerate model. If user exists, only plan_type, ritual_type, tone, voice, duration are required. If user doesn't exist, all fields are required (gender, dream, goals, age_range, happiness, plan_type, ritual_type, tone, voice, duration). The plan_type field should be a valid RitualType ID that exists in the database. For choice fields, send keys instead of values: ritual_type ('story', 'guided'), tone ('dreamy', 'asmr'), voice ('male', 'female'), duration ('2', '5', '10'). The response includes the plan type name, saved file URL and meditation record ID.",
         tags=['External Meditation API']
     )
     def post(self, request):
         """
-        Send meditation request to external API based on plan type
+        Send meditation request to external API based on plan type with user check
         """
         try:
-            # Validate input data using serializer
-            serializer = ExternalMeditationSerializer(data=request.data)
+            # Check if user exists in MeditationGenerate model
+            user_exists_in_meditation = MeditationGenerate.objects.filter(user=request.user).exists()
+            
+            # Validate input data using the new serializer with user check
+            serializer = ExternalMeditationWithUserCheckSerializer(
+                data=request.data, 
+                context={'request': request}
+            )
             if not serializer.is_valid():
                 return Response({
                     "error": "Validation failed",
-                    "details": serializer.errors
+                    "details": serializer.errors,
+                    "user_exists_in_meditation": user_exists_in_meditation
                 }, status=status.HTTP_400_BAD_REQUEST)
             
             # Process the meditation request using the service
@@ -1036,6 +1045,9 @@ class ExternalMeditationAPIView(APIView):
                 user=request.user,
                 validated_data=serializer.validated_data
             )
+            
+            # Add user existence information to the response
+            result["user_exists_in_meditation"] = user_exists_in_meditation
             
             # Return the result - always return 200 if we have a meditation_id (successful creation)
             if result.get("meditation_id"):
