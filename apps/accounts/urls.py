@@ -27,6 +27,7 @@ from apps.accounts.views import (
 	UserLifeVisionStatsView,
 	ExternalMeditationAPIView,
 	MeditationGenerateDetailView,
+	DeviceTokenRegistrationView,
 )
 
 urlpatterns = [
@@ -85,4 +86,7 @@ urlpatterns = [
 	path('life-vision/<int:vision_id>/', UserLifeVisionDetailView.as_view(), name='life-vision-detail'),  # GET, PUT, DELETE - Single vision operations
 	path('life-vision/<int:vision_id>/complete/', UserLifeVisionCompleteView.as_view(), name='life-vision-complete'),  # POST - Mark as completed
 	path('life-vision/stats/', UserLifeVisionStatsView.as_view(), name='life-vision-stats'),  # GET - Statistics
+	
+	# Push Notification API
+	path('device-token/', DeviceTokenRegistrationView.as_view(), name='device-token-registration'),
 ]

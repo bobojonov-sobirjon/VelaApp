@@ -1,1 +1,1 @@
-# Commands package for accounts app 
+# Management commands for accounts app 

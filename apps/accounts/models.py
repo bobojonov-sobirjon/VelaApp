@@ -392,3 +392,63 @@ class UserLifeVision(models.Model):
             return 0
 
 
+class PushNotification(models.Model):
+    """Model to store push notification data for mobile apps"""
+    title = models.CharField(max_length=200, verbose_name=_("Title"))
+    message = models.TextField(verbose_name=_("Message"))
+    notification_type = models.CharField(max_length=50, verbose_name=_("Notification Type"))
+    is_sent = models.BooleanField(default=False, verbose_name=_("Is Sent"))
+    sent_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Sent At"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    
+    objects = models.Manager()
+    
+    class Meta:
+        verbose_name = _("Push Notification")
+        verbose_name_plural = _("8. Push Notifications")
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.title} - {self.notification_type}"
+
+
+class UserDeviceToken(models.Model):
+    """Model to store user device tokens for push notifications"""
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='device_tokens', verbose_name=_("User"))
+    device_token = models.CharField(max_length=500, verbose_name=_("Device Token"))
+    device_type = models.CharField(max_length=20, choices=[
+        ('ios', 'iOS'),
+        ('android', 'Android'),
+        ('web', 'Web')
+    ], verbose_name=_("Device Type"))
+    platform = models.CharField(max_length=50, verbose_name=_("Platform"), null=True, blank=True)
+    app_version = models.CharField(max_length=20, verbose_name=_("App Version"), null=True, blank=True)
+    os_version = models.CharField(max_length=20, verbose_name=_("OS Version"), null=True, blank=True)
+    device_model = models.CharField(max_length=100, verbose_name=_("Device Model"), null=True, blank=True)
+    is_active = models.BooleanField(default=True, verbose_name=_("Is Active"))
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created At"))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated At"))
+    
+    objects = models.Manager()
+    
+    class Meta:
+        verbose_name = _("User Device Token")
+        verbose_name_plural = _("9. User Device Tokens")
+        unique_together = ['user', 'device_token']
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.device_type}"
+    
+    def save(self, *args, **kwargs):
+        # Auto-detect platform if not provided
+        if not self.platform:
+            if self.device_type == 'ios':
+                self.platform = 'iOS'
+            elif self.device_type == 'android':
+                self.platform = 'Android'
+            elif self.device_type == 'web':
+                self.platform = 'Web'
+        super().save(*args, **kwargs)
+
+

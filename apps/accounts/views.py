@@ -28,7 +28,7 @@ from apps.accounts.serializers import (
 	ExternalMeditationSerializer, ExternalMeditationWithUserCheckSerializer
 )
 from apps.accounts.services import GoogleLoginService, FacebookLoginService, ExternalMeditationService
-from apps.accounts.models import LikeMeditation, Plans, MeditationGenerate, MeditationLibrary, UserPlan, UserLifeVision, CustomUserDetail
+from apps.accounts.models import LikeMeditation, Plans, MeditationGenerate, MeditationLibrary, UserPlan, UserLifeVision, CustomUserDetail, UserDeviceToken
 
 User = get_user_model()
 
@@ -1110,3 +1110,165 @@ class MeditationGenerateDetailView(APIView):
             return Response({
                 "error": "An error occurred while retrieving the meditation"
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class DeviceTokenRegistrationView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def _detect_platform(self, request):
+        """Detect platform from request headers and user agent"""
+        user_agent = request.META.get('HTTP_USER_AGENT', '').lower()
+        
+        # Check for iOS
+        if 'iphone' in user_agent or 'ipad' in user_agent or 'ipod' in user_agent:
+            return 'ios'
+        
+        # Check for Android
+        if 'android' in user_agent:
+            return 'android'
+        
+        # Check for web
+        if 'mozilla' in user_agent or 'chrome' in user_agent or 'safari' in user_agent:
+            return 'web'
+        
+        # Default to web if can't detect
+        return 'web'
+    
+    @swagger_auto_schema(
+        operation_summary="Register device token for push notifications",
+        operation_description="Register a device token for push notifications. Platform will be auto-detected if not provided.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'device_token': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="The device token from Firebase Cloud Messaging"
+                ),
+                'device_type': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=['ios', 'android', 'web'],
+                    description="The type of device (optional - will be auto-detected)"
+                ),
+                'app_version': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="App version (optional)"
+                ),
+                'os_version': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="OS version (optional)"
+                ),
+                'device_model': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Device model (optional)"
+                ),
+            },
+            required=['device_token']
+        ),
+        tags=['Push Notifications'],
+        responses={
+            201: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'device_token_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'detected_platform': openapi.Schema(type=openapi.TYPE_STRING),
+                }
+            ),
+            400: "Bad Request: Invalid data",
+            401: "Unauthorized"
+        }
+    )
+    def post(self, request):
+        """Register device token for push notifications"""
+        device_token = request.data.get('device_token')
+        device_type = request.data.get('device_type')
+        app_version = request.data.get('app_version')
+        os_version = request.data.get('os_version')
+        device_model = request.data.get('device_model')
+        
+        if not device_token:
+            return Response({
+                'error': 'device_token is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Auto-detect platform if not provided
+        if not device_type:
+            device_type = self._detect_platform(request)
+        
+        if device_type not in ['ios', 'android', 'web']:
+            return Response({
+                'error': 'device_type must be one of: ios, android, web'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Create or update device token
+        device_token_obj, created = UserDeviceToken.objects.get_or_create(
+            user=request.user,
+            device_token=device_token,
+            defaults={
+                'device_type': device_type,
+                'app_version': app_version,
+                'os_version': os_version,
+                'device_model': device_model,
+                'is_active': True
+            }
+        )
+        
+        if not created:
+            # Update existing token
+            device_token_obj.device_type = device_type
+            device_token_obj.app_version = app_version
+            device_token_obj.os_version = os_version
+            device_token_obj.device_model = device_model
+            device_token_obj.is_active = True
+            device_token_obj.save()
+        
+        return Response({
+            'message': 'Device token registered successfully',
+            'device_token_id': device_token_obj.id,
+            'detected_platform': device_type
+        }, status=status.HTTP_201_CREATED)
+    
+    @swagger_auto_schema(
+        operation_summary="Unregister device token",
+        operation_description="Unregister a device token to stop receiving push notifications",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'device_token': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="The device token to unregister"
+                ),
+            },
+            required=['device_token']
+        ),
+        tags=['Push Notifications'],
+        responses={
+            200: "Device token unregistered successfully",
+            404: "Device token not found",
+            401: "Unauthorized"
+        }
+    )
+    def delete(self, request):
+        """Unregister device token"""
+        device_token = request.data.get('device_token')
+        
+        if not device_token:
+            return Response({
+                'error': 'device_token is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            device_token_obj = UserDeviceToken.objects.get(
+                user=request.user,
+                device_token=device_token
+            )
+            device_token_obj.is_active = False
+            device_token_obj.save()
+            
+            return Response({
+                'message': 'Device token unregistered successfully'
+            }, status=status.HTTP_200_OK)
+        except UserDeviceToken.DoesNotExist:
+            return Response({
+                'error': 'Device token not found'
+            }, status=status.HTTP_404_NOT_FOUND)

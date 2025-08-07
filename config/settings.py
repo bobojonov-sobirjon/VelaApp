@@ -172,6 +172,13 @@ AUTH_USER_MODEL = 'accounts.CustomUser'
 #     }
 # }
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -254,3 +261,12 @@ LOGGING = {
         },
     },
 }
+
+# Push Notification Settings
+# FCM_SERVER_KEY ni Firebase Console dan oling:
+# 1. Firebase Console > Project Settings > Cloud Messaging > Server key
+# 2. Server key ni nusxalang va pastga joylashtiring
+FCM_SERVER_KEY = '4c2e0f953ec64888447fb7ea0f250ac2d074a8bd'  # JSON fayldan private_key_id
+
+# Test uchun (faqat development da ishlatish):
+# FCM_SERVER_KEY = 'BObkmVdPYoWhP3k2ej_OGE__ltY_7sxmL8aNa3NE0_3_4bUkAxeeC12C5JJ5quB_avoaNm0iMdcBUByV9WF3vRo'

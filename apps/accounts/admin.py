@@ -17,7 +17,10 @@ from apps.accounts.models import (
     LikeMeditation,
     UserCheckIn,
     UserLifeVision,
+    PushNotification,
+    UserDeviceToken,
 )
+from apps.accounts.notification_service import PushNotificationService
 
 
 class CustomUserDetailInline(admin.TabularInline):
@@ -186,6 +189,35 @@ class MeditationGenerateAdmin(admin.ModelAdmin):
         return super().get_queryset(request).select_related('user', 'details', 'ritual_type')
 
 
+class PushNotificationAdmin(admin.ModelAdmin):
+    list_display = ('title', 'notification_type', 'is_sent', 'sent_at', 'created_at')
+    list_filter = ('notification_type', 'is_sent', 'created_at')
+    search_fields = ('title', 'message')
+    ordering = ('-created_at',)
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        (None, {'fields': ('title', 'message', 'notification_type')}),
+        (_('Status'), {'fields': ('is_sent', 'sent_at')}),
+        (_('Timestamps'), {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
+    )
+
+
+class UserDeviceTokenAdmin(admin.ModelAdmin):
+    list_display = ('user', 'device_type', 'platform', 'device_model', 'app_version', 'os_version', 'is_active', 'created_at')
+    list_filter = ('device_type', 'platform', 'is_active', 'created_at')
+    search_fields = ('user__username', 'user__email', 'device_token', 'device_model')
+    ordering = ('-created_at',)
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        (None, {'fields': ('user', 'device_token', 'device_type', 'platform')}),
+        (_('Device Information'), {'fields': ('device_model', 'os_version', 'app_version')}),
+        (_('Status'), {'fields': ('is_active',)}),
+        (_('Timestamps'), {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
+    )
+
+
 class MeditationLibraryAdmin(admin.ModelAdmin):
     list_display = ('name', 'image_preview', 'description_preview', 'file_preview', 'is_deleted', 'created_at', 'updated_at')
     list_filter = ('created_at', 'updated_at', 'is_deleted')
@@ -221,6 +253,22 @@ class MeditationLibraryAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request)
+    
+    def save_model(self, request, obj, form, change):
+        """Override save to send notification when new meditation library is created"""
+        is_new = obj.pk is None
+        super().save_model(request, obj, form, change)
+        
+        # Send notification only for new meditation libraries that are not deleted
+        if is_new and not obj.is_deleted:
+            notification_service = PushNotificationService()
+            result = notification_service.send_meditation_library_notification()
+            
+            # You can add a message to the admin interface here if needed
+            if result['success']:
+                self.message_user(request, f"Meditation library created and notification sent to {result.get('successful_sends', 0)} devices.")
+            else:
+                self.message_user(request, f"Meditation library created but notification failed: {result.get('message', 'Unknown error')}")
 
 
 class PlanDescriptionInline(admin.TabularInline):
@@ -258,6 +306,8 @@ admin.site.register(MeditationGenerate, MeditationGenerateAdmin)
 admin.site.register(MeditationLibrary, MeditationLibraryAdmin)
 admin.site.register(Plans, PlansAdmin)
 admin.site.register(UserLifeVision, UserLifeVisionAdmin)
+admin.site.register(PushNotification, PushNotificationAdmin)
+admin.site.register(UserDeviceToken, UserDeviceTokenAdmin)
 
 # Customize admin site
 admin.site.site_header = _("Vela Admin")
