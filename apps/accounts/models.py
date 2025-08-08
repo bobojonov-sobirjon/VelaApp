@@ -328,8 +328,14 @@ class PlanDescriptin(models.Model):
     class Meta:
         verbose_name = _("Plan Description")
         verbose_name_plural = _("Plan Descriptions")
-        
 
+    def __str__(self):
+        return f"{self.plan.name} - {self.title}"
+
+
+class UserLifeVision(models.Model):
+    """Model for user life visions, goals, dreams, and north star objectives"""
+    
     class VisionTypeChoices(models.TextChoices):
         LIFE_VISION = 'life_vision', _('Life Vision')
         GOAL = 'goal', _('Goal')
