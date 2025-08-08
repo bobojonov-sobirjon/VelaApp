@@ -26,7 +26,7 @@ from apps.accounts.notification_service import PushNotificationService
 class CustomUserDetailInline(admin.TabularInline):
     model = CustomUserDetail
     extra = 0
-    fields = ('dream', 'goals', 'age_range', 'gender', 'happiness')
+    fields = ('dream', 'goals', 'age_range', 'gender', 'happiness', 'occupation', 'interests', 'meditation_experience', 'stress_level', 'sleep_quality', 'preferred_meditation_time')
     verbose_name = _("User Detail")
     verbose_name_plural = _("User Details")
 

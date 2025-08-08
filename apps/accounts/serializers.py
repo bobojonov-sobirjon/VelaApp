@@ -147,12 +147,11 @@ class CustomUserDetailSerializer(serializers.ModelSerializer):
     avatar = serializers.ImageField(required=False, allow_null=True, allow_empty_file=True)
     weekly_login_stats = serializers.SerializerMethodField()
     check_in = UserCheckInSerializer(many=True, read_only=True)
-    
 
     class Meta:
         model = get_user_model()
         fields = [
-            'id', 'email', 'first_name', 'last_name', 'avatar', 'weekly_login_stats', 'check_in'
+            'id', 'weekly_login_stats', 'check_in'
         ]
     
     def get_weekly_login_stats(self, obj):
@@ -201,7 +200,14 @@ class CustomUserDetailSerializer(serializers.ModelSerializer):
                 {"name": "Sunday", "login": False}
             ]
 
+class CustomUserDetailUpdateSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = CustomUserDetail
+        fields = ['id', 'gender', 'age_range', 'dream', 'goals', 'happiness']
+
     def update(self, instance, validated_data):
+        print(1)
 
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -839,25 +845,42 @@ class ExternalMeditationWithUserCheckSerializer(serializers.Serializer):
             
             if errors:
                 raise serializers.ValidationError(errors)
+            
+            # Create CustomUserDetail with the provided data
+            CustomUserDetail.objects.get_or_create(
+                user=request.user,
+                defaults={
+                    'gender': data.get('gender', ''),
+                    'dream': data.get('dream', ''),
+                    'goals': data.get('goals', ''),
+                    'age_range': data.get('age_range', ''),
+                    'happiness': data.get('happiness', '')
+                }
+            )
         else:
-            # If user exists in MeditationGenerate, get values from CustomUserDetail
-            try:
-                user_detail = CustomUserDetail.objects.get(user=request.user)
-                # Populate missing fields from user detail
-                if not data.get('gender'):
-                    data['gender'] = user_detail.gender
-                if not data.get('dream'):
-                    data['dream'] = user_detail.dream
-                if not data.get('goals'):
-                    data['goals'] = user_detail.goals
-                if not data.get('age_range'):
-                    data['age_range'] = user_detail.age_range
-                if not data.get('happiness'):
-                    data['happiness'] = user_detail.happiness
-            except CustomUserDetail.DoesNotExist:
-                raise serializers.ValidationError(
-                    "User detail not found. Please provide all required fields."
-                )
+            # If user exists in MeditationGenerate, get or create CustomUserDetail
+            user_detail, created = CustomUserDetail.objects.get_or_create(
+                user=request.user,
+                defaults={
+                    'gender': data.get('gender', ''),
+                    'dream': data.get('dream', ''),
+                    'goals': data.get('goals', ''),
+                    'age_range': data.get('age_range', ''),
+                    'happiness': data.get('happiness', '')
+                }
+            )
+            
+            # Populate missing fields from user detail
+            if not data.get('gender'):
+                data['gender'] = user_detail.gender
+            if not data.get('dream'):
+                data['dream'] = user_detail.dream
+            if not data.get('goals'):
+                data['goals'] = user_detail.goals
+            if not data.get('age_range'):
+                data['age_range'] = user_detail.age_range
+            if not data.get('happiness'):
+                data['happiness'] = user_detail.happiness
         
         return data
 

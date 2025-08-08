@@ -27,7 +27,12 @@ from apps.accounts.views import (
 	UserLifeVisionStatsView,
 	ExternalMeditationAPIView,
 	MeditationGenerateDetailView,
+	CustomUserDetailUpdateView,
 	DeviceTokenRegistrationView,
+	GetDeviceTokensView,
+	GetDeviceTokenDetailView,
+	CreateDeviceTokenView,
+	GenerateFCMTokenView,
 )
 
 urlpatterns = [
@@ -87,6 +92,13 @@ urlpatterns = [
 	path('life-vision/<int:vision_id>/complete/', UserLifeVisionCompleteView.as_view(), name='life-vision-complete'),  # POST - Mark as completed
 	path('life-vision/stats/', UserLifeVisionStatsView.as_view(), name='life-vision-stats'),  # GET - Statistics
 	
+	# Token-based User API
+	path('user-detail-update/', CustomUserDetailUpdateView.as_view(), name='user-detail-update'),
+	
 	# Push Notification API
 	path('device-token/', DeviceTokenRegistrationView.as_view(), name='device-token-registration'),
+	path('device-tokens/', GetDeviceTokensView.as_view(), name='get-device-tokens'),
+	path('device-tokens/<int:token_id>/', GetDeviceTokenDetailView.as_view(), name='get-device-token-detail'),
+	path('create-device-token/', CreateDeviceTokenView.as_view(), name='create-device-token'),
+	path('generate-fcm-token/', GenerateFCMTokenView.as_view(), name='generate-fcm-token'),
 ]

@@ -93,6 +93,11 @@ class PushNotificationService:
                 try:
                     print(f"Trying to send to token: {token[:30]}...")
                     
+                    # Test token va format token larni tekshirish
+                    if token.startswith('test_fcm_token_') or token.startswith('fMEP0vJqR0:APA91bH'):
+                        print(f"⏭️ Skipping test/format token: {token[:20]}...")
+                        continue
+                    
                     # Create message for each token
                     message_obj = messaging.Message(
                         notification=messaging.Notification(
@@ -171,8 +176,11 @@ class PushNotificationService:
         """
         Send notification when new meditation library is added
         """
-        return self.send_notification_to_all_users(
-            title="New Meditation Library",
-            message="A new meditation library has been added to your app.",
-            notification_type="meditation_library_added"
-        ) 
+        # Test uchun notification ni o'chirish
+        print("Meditation library notification disabled for testing")
+        return {
+            'success': True,
+            'message': 'Notification disabled for testing',
+            'total_devices': 0,
+            'successful_sends': 0
+        } 

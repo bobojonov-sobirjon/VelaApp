@@ -25,10 +25,11 @@ from apps.accounts.serializers import (
 	PasswordUpdateSerializer, PlanSerializer, CombinedProfileSerializer,
 	UserCheckInSerializer, MeditationGenerateListSerializer, MeditationLibraryListSerializer, RitualTypeListSerializer,
 	UserLifeVisionSerializer, UserLifeVisionListSerializer, UserLifeVisionCreateSerializer, UserLifeVisionUpdateSerializer,
-	ExternalMeditationSerializer, ExternalMeditationWithUserCheckSerializer
+	ExternalMeditationSerializer, ExternalMeditationWithUserCheckSerializer, CustomUserDetailUpdateSerializer
 )
 from apps.accounts.services import GoogleLoginService, FacebookLoginService, ExternalMeditationService
 from apps.accounts.models import LikeMeditation, Plans, MeditationGenerate, MeditationLibrary, UserPlan, UserLifeVision, CustomUserDetail, UserDeviceToken
+from apps.accounts.utils import get_user_from_token, get_user_from_request, get_or_create_user_detail
 
 User = get_user_model()
 
@@ -1272,3 +1273,400 @@ class DeviceTokenRegistrationView(APIView):
             return Response({
                 'error': 'Device token not found'
             }, status=status.HTTP_404_NOT_FOUND)
+
+
+class GetDeviceTokensView(APIView):
+    permission_classes = [AllowAny]
+    
+    @swagger_auto_schema(
+        operation_summary="Get all device tokens",
+        operation_description="Retrieve all device tokens from all users and all device types (Android, iOS, Web)",
+        tags=['Push Notifications'],
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'device_tokens': openapi.Schema(
+                        type=openapi.TYPE_ARRAY,
+                        items=openapi.Schema(
+                            type=openapi.TYPE_OBJECT,
+                            properties={
+                                'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                                'device_token': openapi.Schema(type=openapi.TYPE_STRING),
+                                'device_type': openapi.Schema(type=openapi.TYPE_STRING),
+                                'platform': openapi.Schema(type=openapi.TYPE_STRING),
+                                'app_version': openapi.Schema(type=openapi.TYPE_STRING),
+                                'os_version': openapi.Schema(type=openapi.TYPE_STRING),
+                                'device_model': openapi.Schema(type=openapi.TYPE_STRING),
+                                'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                                'created_at': openapi.Schema(type=openapi.TYPE_STRING),
+                                'updated_at': openapi.Schema(type=openapi.TYPE_STRING),
+                                'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description="User ID who owns this token"),
+                            }
+                        )
+                    ),
+                    'total_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'active_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'android_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'ios_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'web_count': openapi.Schema(type=openapi.TYPE_INTEGER),
+                }
+            ),
+            200: "Success"
+        }
+    )
+    def get(self, request):
+        """Get all device tokens from all users and all device types"""
+        try:
+            # Get all device tokens from all users
+            device_tokens = UserDeviceToken.objects.all()
+            
+            # Filter by device type if provided
+            device_type = request.query_params.get('device_type')
+            if device_type:
+                device_tokens = device_tokens.filter(device_type=device_type)
+            
+            # Filter by active status if provided
+            is_active = request.query_params.get('is_active')
+            if is_active is not None:
+                is_active_bool = is_active.lower() == 'true'
+                device_tokens = device_tokens.filter(is_active=is_active_bool)
+            
+            # Serialize the device tokens
+            tokens_data = []
+            for token in device_tokens:
+                tokens_data.append({
+                    'id': token.id,
+                    'device_token': token.device_token,
+                    'device_type': token.device_type,
+                    'platform': token.platform,
+                    'app_version': token.app_version,
+                    'os_version': token.os_version,
+                    'device_model': token.device_model,
+                    'is_active': token.is_active,
+                    'created_at': token.created_at.isoformat() if token.created_at else None,
+                    'updated_at': token.updated_at.isoformat() if token.updated_at else None,
+                    'user_id': token.user.id if token.user else None,
+                })
+            
+            # Calculate counts
+            total_count = device_tokens.count()
+            active_count = device_tokens.filter(is_active=True).count()
+            android_count = device_tokens.filter(device_type='android').count()
+            ios_count = device_tokens.filter(device_type='ios').count()
+            web_count = device_tokens.filter(device_type='web').count()
+            
+            return Response({
+                'device_tokens': tokens_data,
+                'total_count': total_count,
+                'active_count': active_count,
+                'android_count': android_count,
+                'ios_count': ios_count,
+                'web_count': web_count,
+                'message': f'Found {total_count} device tokens ({active_count} active) - Android: {android_count}, iOS: {ios_count}, Web: {web_count}'
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Error retrieving device tokens: {str(e)}")
+            return Response({
+                'error': 'An error occurred while retrieving device tokens'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CustomUserDetailUpdateView(APIView):
+    """
+    View for token-based user operations
+    Get user from token and manage basic CustomUserDetail fields
+    """
+    permission_classes = [IsAuthenticated]
+    
+    @swagger_auto_schema(
+        operation_summary="Update user details via token",
+        operation_description="Update basic CustomUserDetail fields for the authenticated user from token",
+        tags=['Account'],
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'gender': openapi.Schema(type=openapi.TYPE_STRING, description="User's gender"),
+                'age_range': openapi.Schema(type=openapi.TYPE_STRING, description="User's age range"),
+                'dream': openapi.Schema(type=openapi.TYPE_STRING, description="User's dream"),
+                'goals': openapi.Schema(type=openapi.TYPE_STRING, description="User's goals"),
+                'happiness': openapi.Schema(type=openapi.TYPE_STRING, description="What makes user happy"),
+            }
+        ),
+        responses={
+            200: "User detail updated successfully",
+            401: "Invalid or missing token",
+            400: "Bad request"
+        }
+    )
+    def put(self, request):
+        """Update user details from token"""
+        user = request.user
+        
+        details = get_object_or_404(CustomUserDetail, user=user)
+        
+        serializer = CustomUserDetailUpdateSerializer(details, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class GetDeviceTokenDetailView(APIView):
+    permission_classes = [AllowAny]
+    
+    @swagger_auto_schema(
+        operation_summary="Get device token by ID",
+        operation_description="Retrieve a specific device token by its ID from all users",
+        tags=['Push Notifications'],
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'device_token': openapi.Schema(type=openapi.TYPE_STRING),
+                    'device_type': openapi.Schema(type=openapi.TYPE_STRING),
+                    'platform': openapi.Schema(type=openapi.TYPE_STRING),
+                    'app_version': openapi.Schema(type=openapi.TYPE_STRING),
+                    'os_version': openapi.Schema(type=openapi.TYPE_STRING),
+                    'device_model': openapi.Schema(type=openapi.TYPE_STRING),
+                    'is_active': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                    'created_at': openapi.Schema(type=openapi.TYPE_STRING),
+                    'updated_at': openapi.Schema(type=openapi.TYPE_STRING),
+                    'user_id': openapi.Schema(type=openapi.TYPE_INTEGER, description="User ID who owns this token"),
+                }
+            ),
+            404: "Device token not found",
+            200: "Success"
+        }
+    )
+    def get(self, request, token_id):
+        """Get a specific device token by ID from all users"""
+        try:
+            device_token = UserDeviceToken.objects.get(id=token_id)
+            
+            token_data = {
+                'id': device_token.id,
+                'device_token': device_token.device_token,
+                'device_type': device_token.device_type,
+                'platform': device_token.platform,
+                'app_version': device_token.app_version,
+                'os_version': device_token.os_version,
+                'device_model': device_token.device_model,
+                'is_active': device_token.is_active,
+                'created_at': device_token.created_at.isoformat() if device_token.created_at else None,
+                'updated_at': device_token.updated_at.isoformat() if device_token.updated_at else None,
+                'user_id': device_token.user.id if device_token.user else None,
+            }
+            
+            return Response(token_data, status=status.HTTP_200_OK)
+            
+        except UserDeviceToken.DoesNotExist:
+            return Response({
+                'error': 'Device token not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error retrieving device token {token_id}: {str(e)}")
+            return Response({
+                'error': 'An error occurred while retrieving the device token'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CreateDeviceTokenView(APIView):
+    permission_classes = [AllowAny]
+    
+    @swagger_auto_schema(
+        operation_summary="Create device token for new user",
+        operation_description="Create a new device token for a user. If user doesn't exist, it will be created automatically.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            properties={
+                'device_token': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="The device token from Firebase Cloud Messaging"
+                ),
+                'device_type': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    enum=['ios', 'android', 'web'],
+                    description="The type of device"
+                ),
+                'app_version': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="App version (optional)"
+                ),
+                'os_version': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="OS version (optional)"
+                ),
+                'device_model': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Device model (optional)"
+                ),
+                'user_email': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="User email (optional - if not provided, anonymous user will be created)"
+                ),
+                'username': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Username (optional)"
+                ),
+                'first_name': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="First name (optional)"
+                ),
+                'last_name': openapi.Schema(
+                    type=openapi.TYPE_STRING,
+                    description="Last name (optional)"
+                ),
+            },
+            required=['device_token', 'device_type']
+        ),
+        tags=['Push Notifications'],
+        responses={
+            201: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'device_token_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'user_id': openapi.Schema(type=openapi.TYPE_INTEGER),
+                    'user_created': openapi.Schema(type=openapi.TYPE_BOOLEAN),
+                    'device_token': openapi.Schema(type=openapi.TYPE_STRING),
+                    'device_type': openapi.Schema(type=openapi.TYPE_STRING),
+                }
+            ),
+            400: "Bad Request: Invalid data",
+            500: "Internal Server Error"
+        }
+    )
+    def post(self, request):
+        """Create device token for new user"""
+        device_token = request.data.get('device_token')
+        device_type = request.data.get('device_type')
+        app_version = request.data.get('app_version')
+        os_version = request.data.get('os_version')
+        device_model = request.data.get('device_model')
+        user_email = request.data.get('user_email')
+        username = request.data.get('username')
+        first_name = request.data.get('first_name')
+        last_name = request.data.get('last_name')
+        
+        if not device_token:
+            return Response({
+                'error': 'device_token is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not device_type:
+            return Response({
+                'error': 'device_type is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if device_type not in ['ios', 'android', 'web']:
+            return Response({
+                'error': 'device_type must be one of: ios, android, web'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Try to find existing user by email
+            user = None
+            user_created = False
+            
+            if user_email:
+                try:
+                    user = User.objects.get(email=user_email)
+                except User.DoesNotExist:
+                    # Create new user
+                    user = User.objects.create(
+                        email=user_email,
+                        username=username or f"user_{timezone.now().timestamp()}",
+                        first_name=first_name or "",
+                        last_name=last_name or "",
+                        is_active=True
+                    )
+                    user_created = True
+            else:
+                # Create anonymous user
+                anonymous_username = f"anonymous_{timezone.now().timestamp()}"
+                user = User.objects.create(
+                    username=anonymous_username,
+                    is_active=True
+                )
+                user_created = True
+            
+            # Create or update device token
+            device_token_obj, created = UserDeviceToken.objects.get_or_create(
+                user=user,
+                device_token=device_token,
+                defaults={
+                    'device_type': device_type,
+                    'app_version': app_version,
+                    'os_version': os_version,
+                    'device_model': device_model,
+                    'is_active': True
+                }
+            )
+            
+            if not created:
+                # Update existing token
+                device_token_obj.device_type = device_type
+                device_token_obj.app_version = app_version
+                device_token_obj.os_version = os_version
+                device_token_obj.device_model = device_model
+                device_token_obj.is_active = True
+                device_token_obj.save()
+            
+            return Response({
+                'message': 'Device token created successfully',
+                'device_token_id': device_token_obj.id,
+                'user_id': user.id,
+                'user_created': user_created,
+                'device_token': device_token_obj.device_token,
+                'device_type': device_token_obj.device_type,
+                'user_email': user.email,
+                'username': user.username
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            logger.error(f"Error creating device token: {str(e)}")
+            return Response({
+                'error': f'An error occurred while creating device token: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class GenerateFCMTokenView(APIView):
+    permission_classes = [AllowAny]
+    
+    @swagger_auto_schema(
+        operation_summary="Generate valid FCM token for testing",
+        operation_description="Generate a valid FCM token format for testing push notifications",
+        tags=['Push Notifications'],
+        responses={
+            200: openapi.Schema(
+                type=openapi.TYPE_OBJECT,
+                properties={
+                    'fcm_token': openapi.Schema(type=openapi.TYPE_STRING),
+                    'message': openapi.Schema(type=openapi.TYPE_STRING),
+                    'token_format': openapi.Schema(type=openapi.TYPE_STRING),
+                }
+            ),
+            200: "Success"
+        }
+    )
+    def get(self, request):
+        """Generate a valid FCM token format for testing"""
+        import uuid
+        import time
+        
+        # Valid FCM token format yaratish
+        timestamp = int(time.time())
+        random_id = str(uuid.uuid4()).replace('-', '')[:32]
+        
+        # FCM token format: 152 karakter uzunlikda
+        fcm_token = f"fMEP0vJqR0:APA91bH{random_id}_{timestamp}"
+        
+        return Response({
+            'fcm_token': fcm_token,
+            'message': 'Valid FCM token format generated for testing',
+            'token_format': 'fMEP0vJqR0:APA91bH... (152 characters)',
+            'note': 'This is a test token format. For real notifications, use actual FCM tokens from mobile apps.'
+        }, status=status.HTTP_200_OK)
