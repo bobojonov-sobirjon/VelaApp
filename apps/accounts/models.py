@@ -451,4 +451,4 @@ class UserDeviceToken(models.Model):
                 self.platform = 'Android'
             elif self.device_type == 'web':
                 self.platform = 'Web'
-        super().save(*args, **kwargs
+        super().save(*args, **kwargs)
