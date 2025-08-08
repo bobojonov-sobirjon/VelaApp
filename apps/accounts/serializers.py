@@ -151,7 +151,7 @@ class CustomUserDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
         fields = [
-            'id', 'weekly_login_stats', 'check_in'
+            'id', 'avatar', 'weekly_login_stats', 'check_in'
         ]
     
     def get_weekly_login_stats(self, obj):
